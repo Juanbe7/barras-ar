@@ -51,6 +51,11 @@ export function createNotFoundView(ean: string, related: Product[]): HTMLElement
       ),
     ),
     h(
+      "p",
+      { class: "muted not-found__hint" },
+      "Compará el número con el del envase. Si no coincide, escaneá de nuevo con buena luz.",
+    ),
+    h(
       "div",
       { class: "not-found__actions" },
       createButton({ label: "Escanear de nuevo", href: paths.scan }),

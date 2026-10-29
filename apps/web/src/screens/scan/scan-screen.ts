@@ -2,6 +2,7 @@ import { hasValidCheckDigit } from "../../domain/barcode";
 import { paths } from "../../router/routes";
 import { CameraError, toCameraError } from "../../scanner/camera";
 import { createScanner } from "../../scanner/create-scanner";
+import { createReadConfirmer } from "../../scanner/read-confirmer";
 import { findTorch } from "../../scanner/torch";
 import type { BarcodeScanner } from "../../scanner/barcode-scanner";
 import { h } from "../../ui/dom";
@@ -21,6 +22,10 @@ const CAMERA_MESSAGES: Record<CameraError["kind"], { title: string; text: string
     text: "Este dispositivo no tiene cámara disponible. Podés buscar por nombre o escribir el código.",
   },
 };
+
+// a code is accepted after this many identical reads in a row, each at most this far apart
+const REQUIRED_READS = 3;
+const MAX_GAP_BETWEEN_READS_MS = 1000;
 
 export const createScanScreen: ScreenFactory = (ctx) => {
   const video = h("video", { class: "scan__video", playsinline: true, muted: true, autoplay: true });
@@ -50,9 +55,11 @@ export const createScanScreen: ScreenFactory = (ctx) => {
     );
   }
 
+  const confirmer = createReadConfirmer(REQUIRED_READS, MAX_GAP_BETWEEN_READS_MS);
+
   function onCode(code: string): void {
-    // a misread has a wrong check digit; ignore it and keep scanning
-    if (disposed || !hasValidCheckDigit(code)) return;
+    // a misread usually has a wrong check digit and, when it does not, it rarely repeats: ignore both
+    if (disposed || !hasValidCheckDigit(code) || !confirmer.confirm(code)) return;
     ctx.navigate(paths.product(code), { replace: true });
   }
 

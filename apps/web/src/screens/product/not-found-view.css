@@ -29,6 +29,10 @@
   letter-spacing: 0.04em;
 }
 
+.not-found--alone .not-found__hint {
+  text-align: center;
+}
+
 .not-found__actions {
   display: flex;
   flex-direction: column;
