@@ -9,9 +9,10 @@ const cell = (value: unknown) => {
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
-/** One CSV line per product, in the column order of the `products` table. Empty cells are NULL. */
+/** One CSV line. Empty cells are NULL for COPY. */
+export const csvRow = (values: unknown[]) => values.map(cell).join(",") + "\n";
+
+/** One CSV line per product, in the column order of the `products` table. */
 export function* csvLines(products: Iterable<Product>): Generator<string> {
-  for (const product of products) {
-    yield PRODUCT_COLUMNS.map(([, key]) => cell(product[key])).join(",") + "\n";
-  }
+  for (const product of products) yield csvRow(PRODUCT_COLUMNS.map(([, key]) => product[key]));
 }

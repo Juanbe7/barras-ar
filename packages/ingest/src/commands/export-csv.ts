@@ -19,7 +19,7 @@ async function main() {
   const startedAt = Date.now();
 
   const sources = await aggregateProducts(
-    readProducts(input, (notice) => {
+    readProducts(input, "retail", (notice) => {
       if (notice.status !== "ok")
         console.error(`ZIP ${notice.status}: ${notice.file} ${notice.detail ?? ""}`);
     }),
@@ -27,7 +27,7 @@ async function main() {
 
   function* lines() {
     yield CSV_HEADER;
-    for (const [ean, source] of sources) yield* csvLines([buildProduct(ean, source, date)]);
+    for (const [ean, source] of sources) yield* csvLines([buildProduct(ean, source, { retail: date })]);
   }
   mkdirSync(dirname(output), { recursive: true });
   await pipeline(Readable.from(lines()), createWriteStream(output));

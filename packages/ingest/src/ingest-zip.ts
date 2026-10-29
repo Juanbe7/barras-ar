@@ -1,74 +1,93 @@
+import { createHash } from "node:crypto";
 import { basename } from "node:path";
-import { upsertProducts } from "./db/catalog.js";
+import { upsertBulkUnits, upsertProducts, upsertReferencePrices } from "./db/catalog.js";
 import { connect, withTransaction } from "./db/connect.js";
 import { findIngestionByHash, recordIngestion } from "./db/ingestions.js";
-import { buildProduct } from "./domain/product.js";
+import { buildProduct, type Channel } from "./domain/product.js";
 import { aggregateProducts } from "./source/aggregate.js";
 import { hashFile } from "./source/file-hash.js";
-import { readProducts, resolveDate, type ZipNotice } from "./source/reader.js";
+import { readProducts, resolveDate, type ProductRow, type ZipNotice } from "./source/reader.js";
 
 export interface IngestOptions {
-  /** the day's ZIP of ZIPs */
-  path: string;
-  /** data day (YYYY-MM-DD); read from the ZIP when omitted */
+  /** the retail day's ZIP of ZIPs */
+  retail: string;
+  /** the wholesale day's ZIP of ZIPs; the run works without it */
+  wholesale?: string;
+  /** retail data day (YYYY-MM-DD); read from the ZIP when omitted */
   date?: string;
-  /** ingest again a file that was already ingested */
+  /** ingest again files that were already ingested */
   force?: boolean;
 }
 
 export type IngestOutcome =
-  { status: "skipped"; previousId: number } | { status: "loaded"; inserted: number; updated: number };
+  | { status: "skipped"; previousId: number }
+  | { status: "loaded"; inserted: number; updated: number; prices: number; boxes: number };
 
 const seconds = (since: number) => ((Date.now() - since) / 1000).toFixed(1);
 
-/** Reads one day's SEPA ZIP and loads it into the catalog. Safe to repeat: a file already ingested is skipped. */
+/**
+ * Reads one day's SEPA files and loads them into the catalog. Retail and wholesale go through one run, so a
+ * product sold in both gets the best description among all its chains. Safe to repeat: the same files are skipped.
+ */
 export async function ingestZip({
-  path,
+  retail,
+  wholesale,
   date: dateArg,
   force = false,
 }: IngestOptions): Promise<IngestOutcome> {
-  const date = await resolveDate(path, dateArg);
-  const hash = await hashFile(path);
+  const days: Partial<Record<Channel, string>> = { retail: await resolveDate(retail, dateArg) };
+  if (wholesale) days.wholesale = await resolveDate(wholesale);
+
+  // one fingerprint for the pair: wholesale arriving later than retail makes the run new
+  const hash = createHash("sha256")
+    .update(await hashFile(retail))
+    .update(wholesale ? await hashFile(wholesale) : "")
+    .digest("hex");
 
   const db = await connect();
   try {
     const previous = await findIngestionByHash(db, hash);
     if (previous && !force) {
       console.log(
-        `This file was already ingested (#${previous.id}, ${previous.createdAt.toISOString()}). Use --force to repeat it.`,
+        `These files were already ingested (#${previous.id}, ${previous.createdAt.toISOString()}). Use --force to repeat them.`,
       );
       return { status: "skipped", previousId: previous.id };
     }
 
     const startedAt = Date.now();
     const notices: ZipNotice[] = [];
-    const sources = await aggregateProducts(
-      readProducts(path, (notice) => {
-        notices.push(notice);
-        if (notice.status !== "ok")
-          console.error(`ZIP ${notice.status}: ${notice.file} ${notice.detail ?? ""}`);
-      }),
-    );
+    const onNotice = (notice: ZipNotice) => {
+      notices.push(notice);
+      if (notice.status !== "ok")
+        console.error(`ZIP ${notice.status}: ${notice.file} ${notice.detail ?? ""}`);
+    };
+    async function* rows(): AsyncGenerator<ProductRow> {
+      yield* readProducts(retail, "retail", onNotice);
+      if (wholesale) yield* readProducts(wholesale, "wholesale", onNotice);
+    }
+    const sources = await aggregateProducts(rows());
     console.log(`${sources.size} products read in ${seconds(startedAt)} s`);
 
-    function* products() {
-      for (const [ean, source] of sources) yield buildProduct(ean, source, date);
-    }
-    const { inserted, updated } = await withTransaction(db, async () => {
-      const result = await upsertProducts(db, products());
+    const products = [...sources].map(([ean, source]) => buildProduct(ean, source, days));
+    const result = await withTransaction(db, async () => {
+      const { inserted, updated } = await upsertProducts(db, products);
+      const prices = await upsertReferencePrices(db, products);
+      const boxes = await upsertBulkUnits(db, products);
       await recordIngestion(db, {
-        date,
-        file: basename(path),
+        date: days.retail!,
+        file: `retail:${basename(retail)}` + (wholesale ? ` wholesale:${basename(wholesale)}` : ""),
         hash,
         zipsProcessed: notices.filter((n) => n.status === "ok").length,
         zipsFailed: notices.filter((n) => n.status === "error").length,
-        productsInserted: result.inserted,
-        productsUpdated: result.updated,
+        productsInserted: inserted,
+        productsUpdated: updated,
       });
-      return result;
+      return { inserted, updated, prices, boxes };
     });
-    console.log(`Done: ${inserted} new, ${updated} updated (${seconds(startedAt)} s in total)`);
-    return { status: "loaded", inserted, updated };
+    console.log(
+      `Done: ${result.inserted} new, ${result.updated} updated, ${result.prices} prices, ${result.boxes} boxes (${seconds(startedAt)} s in total)`,
+    );
+    return { status: "loaded", ...result };
   } finally {
     await db.end();
   }

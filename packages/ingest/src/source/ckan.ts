@@ -1,5 +1,8 @@
-/** The SEPA dataset on the open data portal (a CKAN site). */
-export const SEPA_PACKAGE_URL = "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios";
+const PACKAGE_SHOW = "https://datos.produccion.gob.ar/api/3/action/package_show?id=";
+
+/** The SEPA datasets on the open data portal (a CKAN site): supermarkets and wholesalers. */
+export const SEPA_RETAIL_PACKAGE_URL = `${PACKAGE_SHOW}sepa-precios`;
+export const SEPA_WHOLESALE_PACKAGE_URL = `${PACKAGE_SHOW}precios-claros-sepa-mayoristas`;
 
 export interface DailyResource {
   name: string;
@@ -50,8 +53,8 @@ export function isStale(resource: DailyResource, now: Date, maxAgeDays: number):
   return now.getTime() - resource.lastModified.getTime() > maxAgeDays * 24 * 60 * 60 * 1000;
 }
 
-export async function fetchLatestDailyResource(): Promise<DailyResource> {
-  const response = await fetch(SEPA_PACKAGE_URL, { signal: AbortSignal.timeout(60_000) });
+export async function fetchLatestDailyResource(packageUrl: string): Promise<DailyResource> {
+  const response = await fetch(packageUrl, { signal: AbortSignal.timeout(60_000) });
   if (!response.ok) throw new Error(`The SEPA portal answered ${response.status}`);
   return pickLatestDailyResource(await response.json());
 }

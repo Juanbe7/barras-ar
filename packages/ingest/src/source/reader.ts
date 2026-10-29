@@ -1,17 +1,24 @@
 import { parse } from "csv-parse";
 import type { Readable } from "node:stream";
 import yauzl from "yauzl";
+import type { Channel } from "../domain/product.js";
 
 /** A row of a chain's productos.csv, with the columns the catalog uses. */
 export interface ProductRow {
+  channel: Channel;
   chainId: string;
   code: string;
   isEan: boolean;
   description: string;
+  /** presentation as the chain reports it; wholesale files have none */
   quantity: string;
   unit: string;
   brand: string;
+  /** list price per unit, with VAT, promotions excluded */
   listPrice: string;
+  /** wholesale only: DUN-14 code of the box and the units it holds */
+  boxCode: string;
+  boxUnits: string;
 }
 
 export interface ZipNotice {
@@ -73,8 +80,37 @@ export async function resolveDate(path: string, explicit?: string): Promise<stri
   return date;
 }
 
+type Record_ = Record<string, string | undefined>;
+
+// the two datasets name their columns differently; the price column doubles as the marker of the
+// trailing "Ultima actualizacion: ..." line, which arrives without it
+const PRICE_COLUMN: Record<Channel, string> = {
+  retail: "productos_precio_lista",
+  wholesale: "precio_unitario_bulto_por_unidad_venta_con_iva",
+};
+
+function toRow(channel: Channel, r: Record_): ProductRow {
+  const text = (column: string) => (r[column] ?? "").trim();
+  return {
+    channel,
+    chainId: text("id_comercio"),
+    code: text("id_producto"),
+    isEan: text("productos_ean") === "1",
+    description: text("productos_descripcion"),
+    quantity: channel === "retail" ? text("productos_cantidad_presentacion") : "",
+    unit: channel === "retail" ? text("productos_unidad_medida_presentacion") : "",
+    brand: text("productos_marca"),
+    listPrice: text(PRICE_COLUMN[channel]),
+    boxCode: channel === "wholesale" ? text("id_dun_14") : "",
+    boxUnits: channel === "wholesale" ? text("unidad_venta") : "",
+  };
+}
+
 /** Rows of a productos.csv: "|" separated, UTF-8 with BOM, CRLF; the trailing text line is dropped. */
-export async function* readProductsCsv(csv: Readable): AsyncGenerator<ProductRow> {
+export async function* readProductsCsv(
+  csv: Readable,
+  channel: Channel = "retail",
+): AsyncGenerator<ProductRow> {
   const parser = csv.pipe(
     parse({
       delimiter: "|",
@@ -86,28 +122,19 @@ export async function* readProductsCsv(csv: Readable): AsyncGenerator<ProductRow
       trim: false,
     }),
   );
-  for await (const row of parser as AsyncIterable<Record<string, string | undefined>>) {
-    // the final "Ultima actualizacion: ..." line arrives with a single column
-    if (row.productos_precio_lista === undefined) continue;
-    yield {
-      chainId: (row.id_comercio ?? "").trim(),
-      code: (row.id_producto ?? "").trim(),
-      isEan: (row.productos_ean ?? "").trim() === "1",
-      description: (row.productos_descripcion ?? "").trim(),
-      quantity: (row.productos_cantidad_presentacion ?? "").trim(),
-      unit: (row.productos_unidad_medida_presentacion ?? "").trim(),
-      brand: (row.productos_marca ?? "").trim(),
-      listPrice: (row.productos_precio_lista ?? "").trim(),
-    };
+  for await (const record of parser as AsyncIterable<Record_>) {
+    if (record[PRICE_COLUMN[channel]] === undefined) continue;
+    yield toRow(channel, record);
   }
 }
 
 /**
- * Walks the day's "ZIP of ZIPs" and yields the product rows of every chain.
+ * Walks a day's "ZIP of ZIPs" and yields the product rows of every chain.
  * Empty or corrupt chain ZIPs are reported through `onNotice` and skipped.
  */
 export async function* readProducts(
   path: string,
+  channel: Channel = "retail",
   onNotice: (notice: ZipNotice) => void = () => {},
 ): AsyncGenerator<ProductRow> {
   const outer = await openZip(path);
@@ -123,7 +150,7 @@ export async function* readProducts(
         inner = await openZip(await toBuffer(await openEntry(outer, entry)));
         const csv = (await listEntries(inner)).find((e) => e.fileName.endsWith("productos.csv"));
         if (!csv) throw new Error("the ZIP has no productos.csv");
-        yield* readProductsCsv(await openEntry(inner, csv));
+        yield* readProductsCsv(await openEntry(inner, csv), channel);
         onNotice({ file: entry.fileName, status: "ok" });
       } catch (err) {
         onNotice({ file: entry.fileName, status: "error", detail: (err as Error).message });

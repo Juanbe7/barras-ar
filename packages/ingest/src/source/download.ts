@@ -1,4 +1,5 @@
-import { createWriteStream, statSync } from "node:fs";
+import { createWriteStream, mkdirSync, statSync } from "node:fs";
+import { dirname } from "node:path";
 import { Readable } from "node:stream";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import { pipeline } from "node:stream/promises";
@@ -18,8 +19,9 @@ async function downloadOnce(url: string, destination: string): Promise<void> {
   }
 }
 
-/** Downloads with a few retries; the portal and the network are not always steady. */
+/** Downloads with a few retries (the portal and the network are not always steady), creating the folder if needed. */
 export async function downloadFile(url: string, destination: string, attempts = 3): Promise<void> {
+  mkdirSync(dirname(destination), { recursive: true });
   for (let attempt = 1; ; attempt++) {
     try {
       return await downloadOnce(url, destination);
