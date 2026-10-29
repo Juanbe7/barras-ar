@@ -1,0 +1,2 @@
+# Same line endings on every machine (Windows included), so Prettier and ESLint agree everywhere.
+* text=auto eol=lf
