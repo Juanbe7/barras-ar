@@ -36,7 +36,7 @@
   border: 4px solid var(--signal);
   border-radius: 50%;
   background: var(--tag-ink);
-  box-shadow: 0 0 0 2px var(--tag-ink);
+  outline: 2px solid var(--tag-ink);
   transform: translate(-50%, -50%);
   animation: marker-slide 700ms var(--ease-out) 150ms backwards;
 }
