@@ -38,6 +38,7 @@ URL pública: **`https://barras-ar.vercel.app`**. Es solo de lectura, no necesit
   "unit": "g",
   "category": null,
   "reference_price": { "median": 3850, "min": 2500, "max": 3985, "date": "2026-10-29" },
+  "wholesale_price": { "median": 3326.8, "min": 2669.99, "max": 3599.88, "date": "2026-10-29" },
   "chains": 7,
   "first_seen": "2026-10-29",
   "last_seen": "2026-10-29",
@@ -50,7 +51,9 @@ URL pública: **`https://barras-ar.vercel.app`**. Es solo de lectura, no necesit
 | `ean` | Código de barras, siempre de 13 dígitos. Los códigos cortos (EAN-8) llevan ceros delante: `0000077903785` es el EAN-8 `77903785` |
 | `description`, `brand`, `category` | Como los informan los comercios (en su mayoría en mayúsculas). `brand` y `category` pueden ser `null` |
 | `quantity`, `unit` | Presentación (`400`, `g`), cuando se pudo leer; si no, `null` |
-| `reference_price` | `median` (precio típico), `min` y `max` entre las cadenas que lo informaron, y `date` del dato. Es `null` si no hay precio |
+| `reference_price` | Precio en **supermercados**: `median` (precio típico), `min` y `max` entre las cadenas que lo informaron, y `date` del dato. Por unidad, con IVA y sin promociones. Es `null` si ningún supermercado lo informó |
+| `wholesale_price` | Lo mismo, pero en **mayoristas**. Sirve como costo aproximado para un comercio que compra para revender. Es `null` si ningún mayorista lo informó |
+| `pack` | Solo cuando se consulta por el código de una **caja** (DUN-14, 14 dígitos): `{ code, units }`, con las unidades que trae la caja. El resto de los campos es el del producto que contiene |
 | `chains` | En cuántas cadenas se vende |
 | `first_seen`, `last_seen` | Primer y último día en que apareció en los datos |
 | `source` | Crédito de los datos; hay que mostrarlo (ver más abajo) |
@@ -96,9 +99,10 @@ La [app web](apps/web) de este repositorio hace esto: `apps/web/src/ui/search-bo
 
 ### Qué tener en cuenta
 
+- **El precio mayorista no es un precio de venta ni un costo exacto.** En la mayoría de los productos es más barato que en supermercados (la mediana del cociente es 0,83), pero en alrededor de 1 de cada 7 es más caro, así que no sirve para sugerir un precio de venta.
 - **El precio es una referencia, no el precio del local.** `median` resume lo que informaron las cadenas incluidas en SEPA ese día. Sirve como orientación para cargar un precio, no para reemplazarlo.
 - **Orden de los resultados:** por cuántas cadenas venden el producto y, a igualdad, por código. No hay ranking por parecido del texto.
-- **Cobertura:** solo están los productos que las cadenas informaron el día de la ingesta. Un producto real puede faltar; en ese caso `GET /products/{ean}` da 404 y `/related` ofrece vecinos.
+- **Cobertura:** solo están los productos que las cadenas (supermercados y mayoristas) informaron el día de la ingesta. Los mayoristas aportan unos 12 mil productos que los supermercados no tienen. Un producto real puede faltar; en ese caso `GET /products/{ean}` da 404 y `/related` ofrece vecinos.
 - **Límite de pedidos:** unos 60 por minuto por dirección IP (es un freno por instancia, no una cuota exacta). Varios puestos detrás de la misma conexión comparten ese cupo, así que conviene el retraso de 300 ms y pedir pocos resultados.
 - **Actualización:** los datos se renuevan una vez por día y las respuestas se guardan hasta una hora en caché.
 - **Licencia y crédito:** los datos son de [Precios Claros – Base SEPA](https://datos.produccion.gob.ar/dataset/sepa-precios) (CC BY 4.0). Toda aplicación que muestre estos precios debe indicar la fuente; cada respuesta trae el texto listo en `source`.

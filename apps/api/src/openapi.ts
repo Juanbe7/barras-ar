@@ -20,7 +20,9 @@ export const openapi = {
             name: "ean",
             in: "path",
             required: true,
-            description: "Barcode, 8 to 14 digits (EAN-8, UPC-A, EAN-13).",
+            description:
+              "Barcode, 8 to 14 digits (EAN-8, UPC-A, EAN-13). A 14-digit wholesale box code (DUN-14) also works: " +
+              "the response is the product the box holds, plus a `pack` field.",
             schema: { type: "string", example: "7790040147720" },
           },
         ],
@@ -113,6 +115,15 @@ export const openapi = {
           error: { type: "object", properties: { code: { type: "string" }, message: { type: "string" } } },
         },
       },
+      Price: {
+        type: "object",
+        properties: {
+          median: { type: "number" },
+          min: { type: "number" },
+          max: { type: "number" },
+          date: { type: "string", format: "date", description: "Day of the SEPA file the price comes from" },
+        },
+      },
       Product: {
         type: "object",
         properties: {
@@ -124,14 +135,16 @@ export const openapi = {
           category: { type: "string", nullable: true },
           reference_price: {
             nullable: true,
-            type: "object",
-            description: "National list price (promotions excluded): median of each chain's median.",
-            properties: {
-              median: { type: "number" },
-              min: { type: "number" },
-              max: { type: "number" },
-              date: { type: "string", format: "date" },
-            },
+            allOf: [{ $ref: "#/components/schemas/Price" }],
+            description:
+              "Supermarket price: national list price per unit with VAT, promotions excluded (median of each chain's median).",
+          },
+          wholesale_price: {
+            nullable: true,
+            allOf: [{ $ref: "#/components/schemas/Price" }],
+            description:
+              "Wholesale price per unit with VAT, promotions excluded: an approximate cost for a shop that buys to resell. " +
+              "Usually below the supermarket price, but not always (about 15% of products cost more at wholesalers), so it is not a suggested price.",
           },
           chains: { type: "integer", description: "In how many chains the code appears" },
           first_seen: { type: "string", format: "date" },
@@ -141,7 +154,20 @@ export const openapi = {
       ProductResponse: {
         allOf: [
           { $ref: "#/components/schemas/Product" },
-          { type: "object", properties: { source: { type: "string" } } },
+          {
+            type: "object",
+            properties: {
+              pack: {
+                type: "object",
+                description: "Only when the code asked for is a box (DUN-14)",
+                properties: {
+                  code: { type: "string", example: "57790060023689" },
+                  units: { type: "integer", description: "Units of the product inside the box", example: 12 },
+                },
+              },
+              source: { type: "string" },
+            },
+          },
         ],
       },
       RelatedResponse: {

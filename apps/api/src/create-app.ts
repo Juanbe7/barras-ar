@@ -86,15 +86,23 @@ export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Ho
   });
 
   app.get("/products/:ean", async (c) => {
-    const ean = toCatalogEan(c.req.param("ean"));
+    const code = c.req.param("ean");
+    const ean = toCatalogEan(code);
     if (!ean) return fail(c, 400, "invalid_ean", "The barcode must have 8 to 14 digits.");
-    const product = await products.findByEan(ean);
-    if (!product) {
-      c.header("Cache-Control", CACHE_NOT_FOUND);
-      return fail(c, 404, "not_found", "No product with that barcode.");
+
+    // 13 digits is a unit's own barcode; a 14-digit code may instead be the box it is sold in (DUN-14)
+    const product = ean.length === 13 ? await products.findByEan(ean) : null;
+    if (product) {
+      c.header("Cache-Control", CACHE_PRODUCT);
+      return c.json({ ...toApiProduct(product), source: SOURCE });
     }
-    c.header("Cache-Control", CACHE_PRODUCT);
-    return c.json({ ...toApiProduct(product), source: SOURCE });
+    const box = code.length === 14 ? await products.findByBoxCode(code) : null;
+    if (box) {
+      c.header("Cache-Control", CACHE_PRODUCT);
+      return c.json({ ...toApiProduct(box.product), pack: { code, units: box.units }, source: SOURCE });
+    }
+    c.header("Cache-Control", CACHE_NOT_FOUND);
+    return fail(c, 404, "not_found", "No product with that barcode.");
   });
 
   // Works for codes that are not in the catalog too: it is what a client shows after a 404.
@@ -105,7 +113,8 @@ export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Ho
     if (limit === null)
       return fail(c, 400, "invalid_limit", `limit must be an integer from 1 to ${MAX_RELATED}.`);
 
-    const related = await products.findRelated(ean, limit ?? DEFAULT_RELATED);
+    // only a unit's own 13-digit code has neighbours; a box code has none of its own
+    const related = ean.length === 13 ? await products.findRelated(ean, limit ?? DEFAULT_RELATED) : [];
     c.header("Cache-Control", CACHE_PRODUCT);
     return c.json({ ean, data: related.map(toApiProduct), source: SOURCE });
   });

@@ -11,9 +11,8 @@ const bagley: ProductRecord = {
   quantity: 400,
   unit: "g",
   category: null,
-  priceMedian: 3850,
-  priceMin: 2500,
-  priceMax: 3985,
+  retail: { median: 3850, min: 2500, max: 3985, dataDate: "2026-10-29" },
+  wholesale: { median: 2900, min: 2700, max: 3100, dataDate: "2026-10-29" },
   chains: 7,
   dataDate: "2026-10-29",
   firstSeen: "2026-10-23",
@@ -31,6 +30,9 @@ class FakeProducts implements ProductRepository {
   async search(words: string[], limit: number, offset: number) {
     this.searches.push({ words, limit, offset });
     return { items: [bagley], hasMore: true };
+  }
+  async findByBoxCode(dun14: string) {
+    return dun14 === "57790040147725" ? { product: bagley, units: 12 } : null;
   }
   async findRelated(ean: string, limit: number) {
     this.relatedAsked.push({ ean, limit });
@@ -54,7 +56,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("GET /products/:ean", () => {
-  it("returns the product with its reference price and the source credit", async () => {
+  it("returns the product with both prices and the source credit", async () => {
     const res = await appWith().request("/products/7790040147720");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
@@ -65,6 +67,7 @@ describe("GET /products/:ean", () => {
       unit: "g",
       category: null,
       reference_price: { median: 3850, min: 2500, max: 3985, date: "2026-10-29" },
+      wholesale_price: { median: 2900, min: 2700, max: 3100, date: "2026-10-29" },
       chains: 7,
       first_seen: "2026-10-23",
       last_seen: "2026-10-29",
@@ -97,10 +100,49 @@ describe("GET /products/:ean", () => {
     expect(res.headers.get("Cache-Control")).toContain("s-maxage");
   });
 
-  it("omits the reference price when the product has none", async () => {
-    products.findByEan = async () => ({ ...bagley, priceMedian: null, priceMin: null, priceMax: null });
-    const res = await appWith().request("/products/7790040147720");
-    expect((await res.json()).reference_price).toBeNull();
+  it("has no price for a channel that does not report the product", async () => {
+    products.findByEan = async () => ({ ...bagley, retail: null });
+    const body = await (await appWith().request("/products/7790040147720")).json();
+    expect(body.reference_price).toBeNull();
+    expect(body.wholesale_price).toEqual({ median: 2900, min: 2700, max: 3100, date: "2026-10-29" });
+
+    products.findByEan = async () => ({ ...bagley, retail: null, wholesale: null });
+    const bare = await (await appWith().request("/products/7790040147720")).json();
+    expect([bare.reference_price, bare.wholesale_price]).toEqual([null, null]);
+  });
+
+  it("does not add a pack to a unit's own code", async () => {
+    const body = await (await appWith().request("/products/7790040147720")).json();
+    expect(body).not.toHaveProperty("pack");
+  });
+});
+
+describe("GET /products/:code with a box code (DUN-14)", () => {
+  it("resolves the box to its product and says how many units it holds", async () => {
+    const res = await appWith().request("/products/57790040147725");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ean).toBe("7790040147720");
+    expect(body.pack).toEqual({ code: "57790040147725", units: 12 });
+    expect(body.source).toBe(SOURCE);
+  });
+
+  it("answers 404 for a 14-digit code that is not a known box", async () => {
+    const res = await appWith().request("/products/57790040147999");
+    expect(res.status).toBe(404);
+  });
+
+  it("still treats a 14-digit code with a leading zero as the unit's barcode", async () => {
+    const res = await appWith().request("/products/07790040147720");
+    expect(res.status).toBe(200);
+    expect((await res.json()).pack).toBeUndefined();
+  });
+
+  it("gives no related products for a box code", async () => {
+    const res = await appWith().request("/products/57790040147725/related");
+    expect(res.status).toBe(200);
+    expect((await res.json()).data).toEqual([]);
+    expect(products.relatedAsked).toEqual([]);
   });
 });
 

@@ -24,7 +24,34 @@ describe.skipIf(!process.env.DATABASE_URL)("PgProductRepository", () => {
       unit: "g",
       lastSeen: "2026-10-29",
     });
-    expect(typeof product?.priceMedian).toBe("number");
+    expect(typeof product?.retail?.median).toBe("number");
+    expect(product?.retail?.dataDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("gives each channel its own price", async () => {
+    // an Arcor chocolate bar sold by supermarkets and by wholesalers
+    const both = await products.findByEan("7790580607418");
+    expect(both?.retail?.median).toBeGreaterThan(0);
+    expect(both?.wholesale?.median).toBeGreaterThan(0);
+    expect(both?.wholesale?.median).not.toBe(both?.retail?.median);
+
+    // a sun-care gel that only wholesalers carry
+    const wholesaleOnly = await products.findByEan("7790375267766");
+    expect(wholesaleOnly?.retail).toBeNull();
+    expect(wholesaleOnly?.wholesale?.median).toBeGreaterThan(0);
+  });
+
+  it("reads the presentation of a wholesale-only product from its description", async () => {
+    // "BAGOVIT SOLAR gel post solar 200 ml" has no quantity field anywhere
+    const product = await products.findByEan("7790375267766");
+    expect(product).toMatchObject({ quantity: 200, unit: "ml" });
+  });
+
+  it("resolves a wholesale box code to its product and the units inside", async () => {
+    const match = await products.findByBoxCode("57790060023689");
+    expect(match?.product.ean).toBe("7790060023684");
+    expect(match?.units).toBe(12);
+    expect(await products.findByBoxCode("57790060023690")).toBeNull();
   });
 
   it("returns null for an unknown barcode", async () => {
