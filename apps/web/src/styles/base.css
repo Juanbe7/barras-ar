@@ -8,8 +8,10 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 16px/1.5 var(--font);
+  font: 1rem/1.45 var(--font);
+  font-variant-numeric: tabular-nums;
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #app {
@@ -43,26 +45,31 @@ body {
 
 .title {
   margin: 0;
-  font-size: 1.6rem;
-  font-weight: 600;
-  line-height: 1.2;
+  font: 700 3.1rem/0.95 var(--display);
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
   text-wrap: balance;
 }
 
+.title + .muted {
+  margin-top: var(--space-2);
+}
+
 .title--small {
-  font-size: 1.2rem;
+  font-size: 1.7rem;
+  line-height: 1;
 }
 
 .muted {
   margin: 0;
   color: var(--mute);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 
 .label {
   color: var(--mute);
-  font: 500 0.65rem var(--mono);
-  letter-spacing: 0.08em;
+  font: 600 0.85rem/1 var(--display);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -70,9 +77,29 @@ body {
   flex: 1;
 }
 
+/* the parts of the browser nobody draws */
+::selection {
+  background: var(--signal);
+  color: var(--signal-ink);
+}
+
+input {
+  caret-color: var(--ink);
+}
+
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :focus-visible {
+    outline-color: var(--signal);
+  }
+}
+
+:root[data-theme="dark"] :focus-visible {
+  outline-color: var(--signal);
 }
 
 @media (prefers-reduced-motion: reduce) {

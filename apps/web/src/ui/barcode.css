@@ -1,0 +1,19 @@
+/* Always ink on white, in both themes: it has to stay readable by another phone's scanner. */
+.barcode {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-radius: var(--radius-small);
+  background: #fff;
+  color: #12161a;
+}
+
+.barcode svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  fill: currentColor;
+}
+
+.barcode text {
+  font: 500 8.5px var(--font);
+  fill: currentColor;
+}

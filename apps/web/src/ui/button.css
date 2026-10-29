@@ -1,20 +1,39 @@
 .button {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
   width: 100%;
-  box-sizing: border-box;
   padding: var(--space-4);
-  border: 0;
+  border: 2px solid transparent;
   border-radius: var(--radius);
-  font: inherit;
-  font-weight: 500;
+  font: 700 1.25rem/1 var(--display);
+  letter-spacing: 0.06em;
   text-align: center;
   text-decoration: none;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: transform 120ms var(--ease-out);
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+.button svg {
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
 .button--primary {
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--signal);
+  color: var(--signal-ink);
+}
+
+.button--outline {
+  border-color: var(--ink);
+  background: none;
+  color: var(--ink);
 }
 
 .button--quiet {
@@ -25,5 +44,5 @@
 
 .button--large {
   padding-block: var(--space-6);
-  font-size: 1.05rem;
+  font-size: 1.7rem;
 }

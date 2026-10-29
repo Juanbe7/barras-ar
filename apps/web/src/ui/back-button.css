@@ -1,10 +1,18 @@
 .back-button {
+  display: grid;
+  place-items: center;
   align-self: flex-start;
-  margin: calc(var(--space-2) * -1) 0 calc(var(--space-2) * -1) calc(var(--space-2) * -1);
-  padding: 0 var(--space-2);
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: calc(var(--space-3) * -1) 0 calc(var(--space-2) * -1) calc(var(--space-3) * -1);
+  padding: 0;
   border: 0;
   background: none;
-  color: var(--mute);
-  font: 400 2rem/1 var(--mono);
+  color: var(--ink);
   cursor: pointer;
+}
+
+.back-button svg {
+  width: 1.6rem;
+  height: 1.6rem;
 }

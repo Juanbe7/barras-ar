@@ -1,4 +1,4 @@
-/* The search bar keeps the accent color of the app bar and stays on top while the results scroll. */
+/* The search bar keeps the color of the app bar and stays on top while the results scroll. */
 .search-header {
   position: sticky;
   top: 0;
@@ -8,19 +8,19 @@
   gap: var(--space-2);
   padding: var(--space-1) max(var(--space-4), env(safe-area-inset-right)) var(--space-3)
     max(var(--space-2), env(safe-area-inset-left));
-  background: var(--accent);
+  background: var(--bar);
 }
 
 .search-header .back-button {
   align-self: center;
   margin: 0;
-  color: var(--accent-ink);
+  color: var(--bar-ink);
 }
 
 .search-header .search-field {
   flex: 1;
   min-width: 0;
-  border-color: transparent;
+  border-color: var(--bar-ink);
 }
 
 .search-content {

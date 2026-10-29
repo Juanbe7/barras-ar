@@ -4,6 +4,7 @@ import { CameraError, toCameraError } from "../../scanner/camera";
 import { createScanner } from "../../scanner/create-scanner";
 import type { BarcodeScanner } from "../../scanner/barcode-scanner";
 import { h } from "../../ui/dom";
+import { createCloseIcon } from "../../ui/icons";
 import { createMessageView } from "../../ui/message-view";
 import type { ScreenFactory } from "../screen";
 import "./scan-screen.css";
@@ -21,10 +22,12 @@ const CAMERA_MESSAGES: Record<CameraError["kind"], { title: string; text: string
 
 export const createScanScreen: ScreenFactory = (ctx) => {
   const video = h("video", { class: "scan__video", playsinline: true, muted: true, autoplay: true });
+  const closeLink = h("a", { class: "scan__close", href: `#${paths.home}`, "aria-label": "Cerrar" });
+  closeLink.append(createCloseIcon());
   const element = h(
     "main",
     { class: "screen scan" },
-    h("a", { class: "scan__close", href: `#${paths.home}`, "aria-label": "Cerrar" }, "✕"),
+    closeLink,
     video,
     h("div", { class: "scan__guide", "aria-hidden": true }),
     h("p", { class: "scan__hint" }, "Apuntá al código de barras"),

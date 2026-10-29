@@ -1,27 +1,33 @@
 .product-row {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: var(--space-3);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--line);
   color: inherit;
-  font-size: 0.9rem;
   text-decoration: none;
+}
+
+.product-row:active {
+  background: var(--surface);
 }
 
 .product-row__name {
   min-width: 0;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .product-row__name small {
   display: block;
   margin-top: 2px;
   color: var(--mute);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 400;
 }
 
 .product-row__price {
-  font: 500 0.9rem var(--mono);
+  font: 700 1.5rem/1 var(--display);
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }

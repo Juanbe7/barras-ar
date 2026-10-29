@@ -1,5 +1,6 @@
 import type { Theme, ThemeStore } from "../storage/theme";
 import { h } from "./dom";
+import { createThemeIcon } from "./icons";
 import "./theme-toggle.css";
 
 const LABELS: Record<Theme, string> = {
@@ -9,7 +10,8 @@ const LABELS: Record<Theme, string> = {
 
 /** A small button that switches between the light and dark theme. */
 export function createThemeToggle(theme: ThemeStore): HTMLElement {
-  const button = h("button", { class: "theme-toggle", type: "button" }, "◐");
+  const button = h("button", { class: "theme-toggle", type: "button" });
+  button.append(createThemeIcon());
   const sync = (current: Theme) => button.setAttribute("aria-label", LABELS[current]);
 
   sync(theme.current());

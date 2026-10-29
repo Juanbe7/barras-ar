@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatChains, formatDate, formatPrice } from "../src/domain/format";
+import { formatAmount, formatChains, formatDate, formatPrice } from "../src/domain/format";
 import { positionInRange } from "../src/domain/price-position";
 
 describe("formatPrice", () => {
@@ -8,6 +8,14 @@ describe("formatPrice", () => {
     expect(formatPrice(3850).replace(/\s/g, "")).toBe("$3.850");
     expect(formatPrice(1899.49).replace(/\s/g, "")).toBe("$1.899");
     expect(formatPrice(1250000).replace(/\s/g, "")).toBe("$1.250.000");
+  });
+});
+
+describe("formatAmount", () => {
+  it("groups thousands with a dot and drops the decimals", () => {
+    expect(formatAmount(3850)).toBe("3.850");
+    expect(formatAmount(1899.49)).toBe("1.899");
+    expect(formatAmount(980)).toBe("980");
   });
 });
 

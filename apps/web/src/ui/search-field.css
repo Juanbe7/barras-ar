@@ -3,13 +3,9 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
   background: var(--surface);
-}
-
-.search-field:focus-within {
-  border-color: var(--accent);
 }
 
 .search-field__input {
@@ -19,24 +15,28 @@
   border: 0;
   background: none;
   color: var(--ink);
-  font: inherit; /* 16px: smaller text makes iPhone zoom in on focus */
+  font: 500 1rem var(--font); /* 16px: smaller text makes iPhone zoom in on focus */
   outline: none;
+}
+
+.search-field__input::placeholder {
+  color: var(--mute);
 }
 
 .search-field__button {
   flex: none;
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.6rem;
+  height: 2.6rem;
   border: 0;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-ink);
+  border-radius: var(--radius-small);
+  background: var(--signal);
+  color: var(--signal-ink);
   cursor: pointer;
 }
 
 .search-field__button svg {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.3rem;
+  height: 1.3rem;
 }

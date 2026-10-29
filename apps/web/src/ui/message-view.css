@@ -18,12 +18,12 @@
 .message-view__symbol {
   display: grid;
   place-items: center;
-  width: 4.5rem;
-  height: 4.5rem;
-  border: 1.5px dashed var(--mute);
+  width: 5rem;
+  height: 5rem;
   border-radius: 50%;
-  color: var(--mute);
-  font: 400 1.6rem var(--mono);
+  background: var(--signal);
+  color: var(--signal-ink);
+  font: 700 3rem/1 var(--display);
 }
 
 .message-view__actions {

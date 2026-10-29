@@ -1,7 +1,9 @@
+/* The camera always sits on dark, whatever the theme: the person is aiming, not reading. */
 .scan {
   position: relative;
-  background: #0e1416;
-  color: #cfd8dc;
+  overflow: hidden;
+  background: #05070a;
+  color: #e6ecee;
 }
 
 .scan__video {
@@ -19,23 +21,67 @@
 }
 
 .scan__close {
+  display: grid;
+  place-items: center;
   align-self: flex-start;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: calc(var(--space-3) * -1) 0 0 calc(var(--space-3) * -1);
+  border-radius: 50%;
+  background: rgb(5 7 10 / 55%);
   color: #fff;
-  font: 400 1.4rem var(--mono);
-  text-decoration: none;
 }
 
+.scan__close svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* the viewfinder: four yellow corners and a line that sweeps over the code */
 .scan__guide {
+  --corner: 2.5rem;
+  --stroke: 5px;
   position: relative;
   z-index: 1;
   flex: 1;
-  margin: var(--space-8) 0;
-  border: 2px solid #4fc3c3;
-  border-radius: var(--radius);
+  margin: var(--space-6) 0;
+  background:
+    linear-gradient(var(--signal), var(--signal)) top left / var(--corner) var(--stroke),
+    linear-gradient(var(--signal), var(--signal)) top left / var(--stroke) var(--corner),
+    linear-gradient(var(--signal), var(--signal)) top right / var(--corner) var(--stroke),
+    linear-gradient(var(--signal), var(--signal)) top right / var(--stroke) var(--corner),
+    linear-gradient(var(--signal), var(--signal)) bottom left / var(--corner) var(--stroke),
+    linear-gradient(var(--signal), var(--signal)) bottom left / var(--stroke) var(--corner),
+    linear-gradient(var(--signal), var(--signal)) bottom right / var(--corner) var(--stroke),
+    linear-gradient(var(--signal), var(--signal)) bottom right / var(--stroke) var(--corner);
+  background-repeat: no-repeat;
+}
+
+.scan__guide::after {
+  content: "";
+  position: absolute;
+  inset: 0 var(--space-4) auto;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--signal);
+  box-shadow: 0 0 14px 2px rgb(255 210 31 / 55%);
+  animation: scan-sweep 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes scan-sweep {
+  from {
+    top: 12%;
+  }
+  to {
+    top: 88%;
+  }
 }
 
 .scan__hint {
   margin: 0;
   text-align: center;
-  text-shadow: 0 1px 3px #000;
+  font: 700 1.3rem/1 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px #000;
 }

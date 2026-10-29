@@ -6,8 +6,10 @@ export interface ButtonOptions {
   /** Renders a link to this hash path; without it the button runs `onClick`. */
   href?: string;
   onClick?: () => void;
-  variant?: "primary" | "quiet";
+  variant?: "primary" | "outline" | "quiet";
   large?: boolean;
+  /** An icon shown before the label. */
+  icon?: () => SVGElement;
 }
 
 export function createButton({
@@ -16,8 +18,10 @@ export function createButton({
   onClick,
   variant = "primary",
   large,
+  icon,
 }: ButtonOptions): HTMLElement {
   const className = `button button--${variant}${large ? " button--large" : ""}`;
-  if (href !== undefined) return h("a", { class: className, href: `#${href}` }, label);
-  return h("button", { class: className, type: "button", onclick: () => onClick?.() }, label);
+  const content = [icon?.(), label];
+  if (href !== undefined) return h("a", { class: className, href: `#${href}` }, ...content);
+  return h("button", { class: className, type: "button", onclick: () => onClick?.() }, ...content);
 }

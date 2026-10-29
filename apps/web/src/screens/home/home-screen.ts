@@ -1,6 +1,7 @@
 import { pathForQuery, paths } from "../../router/routes";
 import { createButton } from "../../ui/button";
 import { h } from "../../ui/dom";
+import { createScanIcon } from "../../ui/icons";
 import { createProductRow } from "../../ui/product-row";
 import { createSearchBox } from "../../ui/search-box";
 import type { ScreenFactory } from "../screen";
@@ -24,7 +25,7 @@ export const createHomeScreen: ScreenFactory = (ctx) => {
       h("h1", { class: "title" }, "¿Cuánto sale?"),
       h("p", { class: "muted" }, "Escaneá un código o buscá por nombre."),
     ),
-    createButton({ label: "Escanear código", href: paths.scan, large: true }),
+    createButton({ label: "Escanear código", href: paths.scan, large: true, icon: createScanIcon }),
     searchBox.element,
     h("div", { class: "spacer" }),
     recents.length > 0 &&
