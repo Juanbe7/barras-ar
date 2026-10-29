@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { ingestZip } from "../ingest-zip.js";
 import { fetchLatestDailyResource, isStale } from "../source/ckan.js";
 import { downloadFile } from "../source/download.js";
@@ -26,7 +26,8 @@ async function main() {
 
   const folder = mkdtempSync(join(tmpdir(), "sepa-"));
   try {
-    const zip = join(folder, "sepa.zip");
+    // keep the portal's file name (sepa_jueves.zip): it is what the ingestion log records
+    const zip = join(folder, basename(new URL(resource.url).pathname));
     await downloadFile(resource.url, zip);
     console.log(`Downloaded ${(statSync(zip).size / 1e6).toFixed(0)} MB`);
     await ingestZip({ path: zip, force });
