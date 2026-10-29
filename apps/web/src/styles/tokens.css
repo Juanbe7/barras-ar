@@ -1,0 +1,48 @@
+:root {
+  --bg: #f6f7f7;
+  --surface: #ffffff;
+  --ink: #1d2528;
+  --mute: #6b7a80;
+  --line: #e1e6e8;
+  --accent: #0b6e6e;
+  --accent-ink: #ffffff;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius: 12px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  color-scheme: light;
+}
+
+/* Dark palette: used when the system is dark (unless the person chose light) or when they chose dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12181a;
+    --surface: #1b2427;
+    --ink: #e6ecee;
+    --mute: #8d9a9f;
+    --line: #2c3a3f;
+    --accent: #4fc3c3;
+    --accent-ink: #0c1a1a;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #12181a;
+  --surface: #1b2427;
+  --ink: #e6ecee;
+  --mute: #8d9a9f;
+  --line: #2c3a3f;
+  --accent: #4fc3c3;
+  --accent-ink: #0c1a1a;
+  color-scheme: dark;
+}

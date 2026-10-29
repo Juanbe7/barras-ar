@@ -1,0 +1,10 @@
+.back-button {
+  align-self: flex-start;
+  margin: calc(var(--space-2) * -1) 0 calc(var(--space-2) * -1) calc(var(--space-2) * -1);
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--mute);
+  font: 400 2rem/1 var(--mono);
+  cursor: pointer;
+}

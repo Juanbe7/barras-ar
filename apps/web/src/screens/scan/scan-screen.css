@@ -1,0 +1,41 @@
+.scan {
+  position: relative;
+  background: #0e1416;
+  color: #cfd8dc;
+}
+
+.scan__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan__close,
+.scan__hint {
+  position: relative;
+  z-index: 1;
+}
+
+.scan__close {
+  align-self: flex-start;
+  color: #fff;
+  font: 400 1.4rem var(--mono);
+  text-decoration: none;
+}
+
+.scan__guide {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  margin: var(--space-8) 0;
+  border: 2px solid #4fc3c3;
+  border-radius: var(--radius);
+}
+
+.scan__hint {
+  margin: 0;
+  text-align: center;
+  text-shadow: 0 1px 3px #000;
+}

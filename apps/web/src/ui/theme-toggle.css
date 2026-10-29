@@ -1,0 +1,10 @@
+.theme-toggle {
+  flex: none;
+  margin: calc(var(--space-2) * -1);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--mute);
+  font: 400 1.4rem/1 var(--mono);
+  cursor: pointer;
+}

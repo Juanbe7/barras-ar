@@ -1,0 +1,21 @@
+{
+  "name": "@barras-ar/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mobile web app (PWA): scan a barcode or search by name and see the reference prices",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

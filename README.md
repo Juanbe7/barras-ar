@@ -58,6 +58,7 @@ La API y el esquema usan nombres en inglés; el contenido (descripciones, marcas
 | `packages/ingest/` | Ingesta diaria en TypeScript: lee los ZIP de SEPA, arma la ficha de cada producto y carga el catálogo ([detalles](packages/ingest/README.md)) |
 | `db/migrations/` | Migraciones SQL del catálogo |
 | `apps/api/` | API de lectura con Hono, pensada para Vercel ([detalles](apps/api/README.md)) |
+| `apps/web/` | App web móvil (PWA): escanear un código o buscar por nombre y ver los precios ([detalles](apps/web/README.md)) |
 | `docs/` | Plan del proyecto (PDF) y diagramas |
 | `docs/metadata/` | Especificación oficial de los archivos SEPA, minorista (Anexo II, Res. 678/2020) y mayorista |
 | `prototipo/` | Prototipo en Python que se usó para medir. Referencia histórica: la versión en TypeScript lo reemplaza |

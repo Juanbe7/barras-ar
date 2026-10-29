@@ -1,0 +1,27 @@
+.product-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.product-row__name {
+  min-width: 0;
+}
+
+.product-row__name small {
+  display: block;
+  margin-top: 2px;
+  color: var(--mute);
+  font-size: 0.75rem;
+}
+
+.product-row__price {
+  font: 500 0.9rem var(--mono);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
