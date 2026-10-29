@@ -1,0 +1,46 @@
+.not-found__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.not-found__symbol {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--signal);
+  color: var(--signal-ink);
+  font: 700 2.2rem/1 var(--display);
+}
+
+.not-found__code {
+  margin-top: var(--space-1);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+
+.not-found__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* a different kind of content than the scanned product: set apart by a rule and its own heading */
+.not-found__related {
+  padding-top: var(--space-5);
+  border-top: 2px solid var(--ink);
+}
+
+.not-found__heading {
+  margin: 0 0 var(--space-1);
+  font: 700 1.5rem/1.05 var(--display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.not-found__list {
+  margin-top: var(--space-3);
+}

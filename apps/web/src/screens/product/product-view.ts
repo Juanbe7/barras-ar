@@ -12,13 +12,11 @@ function fact(label: string, value: string): HTMLElement {
   return h("div", { class: "product-view__fact" }, h("span", {}, label), h("strong", {}, value));
 }
 
-/** The found product: its shelf label, where and when it was seen, and the data source credit. */
-export function renderProductView(product: ProductDetail): HTMLElement {
+/** The content of the found product screen: its shelf label, where and when it was seen, and the data source credit. */
+export function renderProductView(product: ProductDetail): Node[] {
   const { reference_price: price } = product;
 
-  return h(
-    "main",
-    { class: "screen" },
+  return [
     createBackButton(),
     createPriceTag(product),
     h(
@@ -34,5 +32,5 @@ export function renderProductView(product: ProductDetail): HTMLElement {
       `Precio de referencia: puede variar según la sucursal. Fuente: ${product.source}`,
     ),
     createButton({ label: "Escanear otro", href: paths.scan, variant: "outline", icon: createScanIcon }),
-  );
+  ];
 }

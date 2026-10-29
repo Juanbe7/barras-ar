@@ -32,3 +32,10 @@ export interface SearchPage {
   has_more: boolean;
   source: string;
 }
+
+export interface RelatedResponse {
+  /** The code the products are related to, as the catalog stores it. */
+  ean: string;
+  data: Product[];
+  source: string;
+}
