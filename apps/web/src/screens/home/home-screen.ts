@@ -3,9 +3,7 @@ import { createButton } from "../../ui/button";
 import { h } from "../../ui/dom";
 import { createProductRow } from "../../ui/product-row";
 import { createSearchBox } from "../../ui/search-box";
-import { createThemeToggle } from "../../ui/theme-toggle";
 import type { ScreenFactory } from "../screen";
-import "./home-screen.css";
 
 export const createHomeScreen: ScreenFactory = (ctx) => {
   const recents = ctx.recents.list();
@@ -22,14 +20,9 @@ export const createHomeScreen: ScreenFactory = (ctx) => {
     { class: "screen" },
     h(
       "header",
-      { class: "home__header" },
-      h(
-        "div",
-        {},
-        h("h1", { class: "title" }, "¿Cuánto sale?"),
-        h("p", { class: "muted" }, "Escaneá un código o buscá por nombre."),
-      ),
-      createThemeToggle(ctx.theme),
+      {},
+      h("h1", { class: "title" }, "¿Cuánto sale?"),
+      h("p", { class: "muted" }, "Escaneá un código o buscá por nombre."),
     ),
     createButton({ label: "Escanear código", href: paths.scan, large: true }),
     searchBox.element,
