@@ -11,7 +11,7 @@ describe.skipIf(!process.env.DATABASE_URL)("PgProductRepository", () => {
 
   beforeAll(() => {
     pool = createPool();
-    products = new PgProductRepository(pool);
+    products = new PgProductRepository(() => pool);
   });
   afterAll(() => pool.end());
 

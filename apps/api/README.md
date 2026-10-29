@@ -34,7 +34,7 @@ npm run test:integration    # queries a real catalog through DATABASE_URL (.env)
 
 ```
 src/
-  app.ts               routes, validation, error handling; receives its dependencies
+  create-app.ts        routes, validation, error handling; receives its dependencies
   products/
     repository.ts      the ProductRepository interface and its PostgreSQL implementation
     presenter.ts       database record -> public JSON
@@ -43,7 +43,7 @@ src/
   openapi.ts           API description
   db.ts                connection pool
   index.ts             wires the real dependencies (what Vercel serves)
-  server.ts            local development server
+  dev-server.ts        local development server
 ```
 
 `createApp` takes the repository and the rate limiter as arguments, so the routes are tested with in-memory fakes and no database.

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Read-only HTTP API over the BarrasAR catalog",
   "scripts": {
-    "dev": "tsx watch --env-file=.env src/server.ts",
+    "dev": "tsx watch --env-file=.env src/dev-server.ts",
     "test": "vitest run",
     "test:integration": "node --env-file=.env ../../node_modules/vitest/vitest.mjs run test/integration",
     "typecheck": "tsc -p ."

@@ -63,17 +63,18 @@ function toRecord(row: Record<string, string | number | null>): ProductRecord {
 }
 
 export class PgProductRepository implements ProductRepository {
-  constructor(private readonly pool: pg.Pool) {}
+  /** `getPool` is called on every query, so the pool can be created on first use. */
+  constructor(private readonly getPool: () => pg.Pool) {}
 
   async findByEan(ean: string): Promise<ProductRecord | null> {
-    const { rows } = await this.pool.query(`SELECT ${COLUMNS} FROM products WHERE ean = $1`, [ean]);
+    const { rows } = await this.getPool().query(`SELECT ${COLUMNS} FROM products WHERE ean = $1`, [ean]);
     return rows[0] ? toRecord(rows[0]) : null;
   }
 
   async search(words: string[], limit: number, offset: number): Promise<SearchPage> {
     const patterns = words.map((word) => `%${word}%`);
     // one extra row tells whether there is a next page without counting the whole result
-    const { rows } = await this.pool.query(
+    const { rows } = await this.getPool().query(
       `SELECT ${COLUMNS} FROM products
        WHERE search_text LIKE ALL ($1::text[])
        ORDER BY chains DESC, ean
@@ -84,13 +85,13 @@ export class PgProductRepository implements ProductRepository {
   }
 
   async stats(): Promise<CatalogStats> {
-    const { rows } = await this.pool.query(
+    const { rows } = await this.getPool().query(
       "SELECT count(*)::int AS products, max(data_date) AS latest_data_date FROM products",
     );
     return { products: rows[0].products, latestDataDate: rows[0].latest_data_date };
   }
 
   async ping(): Promise<void> {
-    await this.pool.query("SELECT 1");
+    await this.getPool().query("SELECT 1");
   }
 }
