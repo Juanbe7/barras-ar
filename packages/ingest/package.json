@@ -1,0 +1,25 @@
+{
+  "name": "@barras-ar/ingest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p .",
+    "export-csv": "tsx src/commands/export-csv.ts",
+    "migrate": "tsx --env-file=.env src/commands/migrate.ts",
+    "load": "tsx --env-file=.env src/commands/load.ts"
+  },
+  "dependencies": {
+    "csv-parse": "^7.0.3",
+    "pg": "^8.23.1",
+    "pg-copy-streams": "^7.0.0",
+    "yauzl": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "@types/pg-copy-streams": "^1.2.5",
+    "@types/yauzl": "^3.4.0"
+  },
+  "description": "Daily SEPA ingestion: reads the ZIPs, builds one product record per barcode and loads the catalog into PostgreSQL"
+}
