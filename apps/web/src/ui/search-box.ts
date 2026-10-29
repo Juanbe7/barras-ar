@@ -22,20 +22,23 @@ export interface SearchBoxOptions {
 /** The search field plus a short list of matching products that updates while the person types. */
 export function createSearchBox({ products, onSubmit }: SearchBoxOptions): SearchBox {
   const suggestions = h("div");
+  // a thin bar that sweeps under the field from the first keystroke until the suggestions arrive
+  const progress = h("div", { class: "search-box__progress", role: "progressbar", "aria-label": "Buscando" });
   // every keystroke takes a new ticket, so an answer that arrives late is recognized and dropped
   let latestTicket = 0;
+
+  const setBusy = (busy: boolean) => progress.toggleAttribute("data-busy", busy);
 
   const fetchSuggestions = debounce(async (text: string, ticket: number) => {
     try {
       const page = await products.search(text.trim(), 0, SUGGESTION_COUNT);
-      if (ticket === latestTicket) {
-        suggestions.replaceChildren(
-          ...page.data.map((product) => createProductRow(toProductRowData(product))),
-        );
-      }
+      if (ticket !== latestTicket) return;
+      suggestions.replaceChildren(...page.data.map((product) => createProductRow(toProductRowData(product))));
     } catch {
       // suggestions are a help, not a feature to report errors about: the search button still works
       if (ticket === latestTicket) suggestions.replaceChildren();
+    } finally {
+      if (ticket === latestTicket) setBusy(false);
     }
   }, SUGGEST_DELAY_MS);
 
@@ -43,11 +46,13 @@ export function createSearchBox({ products, onSubmit }: SearchBoxOptions): Searc
     latestTicket++;
     fetchSuggestions.cancel();
     suggestions.replaceChildren();
+    setBusy(false);
   }
 
   const field = createSearchField({
     onInput: (text) => {
       if (!shouldSuggest(text)) return stopSuggesting();
+      setBusy(true);
       fetchSuggestions(text, ++latestTicket);
     },
     onSubmit: (text) => {
@@ -56,5 +61,8 @@ export function createSearchBox({ products, onSubmit }: SearchBoxOptions): Searc
     },
   });
 
-  return { element: h("div", { class: "search-box" }, field, suggestions), dispose: stopSuggesting };
+  return {
+    element: h("div", { class: "search-box" }, field, progress, suggestions),
+    dispose: stopSuggesting,
+  };
 }

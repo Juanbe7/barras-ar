@@ -14,27 +14,41 @@
   object-fit: cover;
 }
 
-.scan__close,
+.scan__bar,
 .scan__hint {
   position: relative;
   z-index: 1;
 }
 
-.scan__close {
+.scan__bar {
+  display: flex;
+  justify-content: space-between;
+  margin: calc(var(--space-3) * -1) calc(var(--space-3) * -1) 0;
+}
+
+.scan__close,
+.scan__torch {
   display: grid;
   place-items: center;
-  align-self: flex-start;
   width: 2.75rem;
   height: 2.75rem;
-  margin: calc(var(--space-3) * -1) 0 0 calc(var(--space-3) * -1);
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: rgb(5 7 10 / 55%);
   color: #fff;
+  cursor: pointer;
 }
 
-.scan__close svg {
+.scan__close svg,
+.scan__torch svg {
   width: 1.4rem;
   height: 1.4rem;
+}
+
+.scan__torch[aria-pressed="true"] {
+  background: var(--signal);
+  color: var(--signal-ink);
 }
 
 /* the viewfinder: four yellow corners and a line that sweeps over the code */

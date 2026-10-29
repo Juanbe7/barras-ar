@@ -1,0 +1,72 @@
+.loading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8) 0;
+}
+
+.loading__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 3rem;
+}
+
+.loading__bars i {
+  height: 100%;
+  border-radius: 1px;
+  background: var(--ink);
+  transform-origin: bottom;
+  animation: loading-bar 1000ms ease-in-out infinite;
+}
+
+/* bars of different widths and offsets, like the real thing */
+.loading__bars i:nth-child(1) {
+  width: 4px;
+  animation-delay: 0ms;
+}
+.loading__bars i:nth-child(2) {
+  width: 7px;
+  animation-delay: 120ms;
+}
+.loading__bars i:nth-child(3) {
+  width: 3px;
+  animation-delay: 240ms;
+}
+.loading__bars i:nth-child(4) {
+  width: 9px;
+  animation-delay: 360ms;
+  background: var(--signal);
+}
+.loading__bars i:nth-child(5) {
+  width: 3px;
+  animation-delay: 480ms;
+}
+.loading__bars i:nth-child(6) {
+  width: 6px;
+  animation-delay: 600ms;
+}
+.loading__bars i:nth-child(7) {
+  width: 4px;
+  animation-delay: 720ms;
+}
+
+@keyframes loading-bar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  45% {
+    transform: scaleY(1);
+  }
+}
+
+.loading__text {
+  margin: 0;
+  font: 700 1.3rem/1 var(--display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
