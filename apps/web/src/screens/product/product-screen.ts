@@ -3,9 +3,12 @@ import { createApiErrorView } from "../../ui/api-error-view";
 import { createBackButton } from "../../ui/back-button";
 import { h } from "../../ui/dom";
 import { createLoading } from "../../ui/loading";
+import { withTimeout } from "../../util/with-timeout";
 import type { ScreenFactory } from "../screen";
 import { createNotFoundView } from "./not-found-view";
 import { renderProductView } from "./product-view";
+
+const RELATED_WAIT_MS = 1500;
 
 export const createProductScreen: ScreenFactory<[ean: string]> = (ctx, ean) => {
   // the container never changes, so the retry button can reload into it after an error
@@ -16,17 +19,14 @@ export const createProductScreen: ScreenFactory<[ean: string]> = (ctx, ean) => {
     if (!disposed) element.replaceChildren(...content);
   }
 
-  /** The code is not in the catalog: say so now, and add products with nearby codes if the API has any. */
-  function showNotFound(): void {
-    const view = createNotFoundView(ean);
-    show(createBackButton(), ...view.nodes);
-    // the list is a bonus: if it fails or is empty the plain "not found" stays as it is
-    ctx.products
-      .getRelated(ean)
-      .then((related) => {
-        if (!disposed) view.showRelated(related);
-      })
-      .catch(() => {});
+  /**
+   * The code is not in the catalog. Products with nearby codes are a bonus, so they are waited for only
+   * briefly and, if they fail or are late, the plain message is shown; the layout is decided once.
+   */
+  async function showNotFound(): Promise<void> {
+    show(createBackButton(), createLoading("Buscando productos parecidos…"));
+    const related = await withTimeout(ctx.products.getRelated(ean), RELATED_WAIT_MS, []);
+    show(createBackButton(), createNotFoundView(ean, related));
   }
 
   async function load(): Promise<void> {
@@ -40,7 +40,7 @@ export const createProductScreen: ScreenFactory<[ean: string]> = (ctx, ean) => {
       });
       show(...renderProductView(product));
     } catch (error) {
-      if (error instanceof ApiError && error.kind === "not_found") showNotFound();
+      if (error instanceof ApiError && error.kind === "not_found") void showNotFound();
       else
         show(
           createBackButton(),
