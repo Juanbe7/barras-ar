@@ -39,9 +39,8 @@ function clientKey(c: Context): string {
   return forwarded || c.req.header("x-real-ip") || "unknown";
 }
 
-export function createApp({ products, rateLimiter }: AppDeps): Hono {
-  const app = new Hono();
-
+/** Registers the API on `app` (a new Hono instance unless one is given) and returns it. */
+export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Hono()): Hono {
   app.use(cors({ origin: "*", allowMethods: ["GET"] }));
 
   app.use(async (c, next) => {

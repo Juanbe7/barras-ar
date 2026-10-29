@@ -1,3 +1,4 @@
+import { Hono } from "hono";
 import type pg from "pg";
 import { createApp } from "./create-app.js";
 import { createPool } from "./db.js";
@@ -11,8 +12,14 @@ const REQUESTS_PER_MINUTE = 60;
 let pool: pg.Pool | undefined;
 const getPool = () => (pool ??= createPool());
 
-/** The production app: PostgreSQL catalog and an in-memory limiter. Vercel serves the default export. */
-export default createApp({
-  products: new PgProductRepository(getPool),
-  rateLimiter: new FixedWindowRateLimiter(REQUESTS_PER_MINUTE, 60_000),
-});
+/**
+ * The production app: PostgreSQL catalog and an in-memory limiter. Vercel serves the default export.
+ * Its build only accepts an entry point that imports Hono itself, which is why the instance is made here.
+ */
+export default createApp(
+  {
+    products: new PgProductRepository(getPool),
+    rateLimiter: new FixedWindowRateLimiter(REQUESTS_PER_MINUTE, 60_000),
+  },
+  new Hono(),
+);
