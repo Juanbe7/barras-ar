@@ -38,7 +38,7 @@ export const createScanScreen: ScreenFactory = (ctx) => {
     bar,
     video,
     h("div", { class: "scan__guide", "aria-hidden": true }),
-    h("p", { class: "scan__hint" }, "Apuntá al código de barras"),
+    h("p", { class: "scan__hint" }, "Apuntá al código del producto o de la caja"),
   );
 
   let scanner: BarcodeScanner | null = null;

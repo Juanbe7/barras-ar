@@ -1,7 +1,9 @@
+import { withMemoryCache } from "../api/cached-client";
 import { createHttpClient } from "../api/http-client";
 import { createProductsApi, type ProductsApi } from "../api/products-api";
 import { config } from "../config";
 import { navigate } from "../router/router";
+import { createChannelStore, type ChannelStore } from "../storage/channel";
 import { createRecentProducts, type RecentProducts } from "../storage/recent-products";
 import { createThemeStore, type ThemeStore } from "../storage/theme";
 
@@ -10,6 +12,7 @@ export interface AppContext {
   products: ProductsApi;
   recents: RecentProducts;
   theme: ThemeStore;
+  channel: ChannelStore;
   navigate: typeof navigate;
 }
 
@@ -24,9 +27,10 @@ export function createContext(): AppContext {
   theme.applySaved();
 
   return {
-    products: createProductsApi(createHttpClient(config.apiUrl)),
+    products: createProductsApi(withMemoryCache(createHttpClient(config.apiUrl))),
     recents: createRecentProducts(window.localStorage),
     theme,
+    channel: createChannelStore(window.localStorage),
     navigate,
   };
 }

@@ -15,13 +15,24 @@ export interface Product {
   quantity: number | null;
   unit: string | null;
   category: string | null;
+  /** Supermarket price. */
   reference_price: ReferencePrice | null;
+  /** Wholesale price: an approximate cost for a shop that buys to resell. Absent in older API versions. */
+  wholesale_price?: ReferencePrice | null;
   chains: number;
   first_seen: string;
   last_seen: string;
 }
 
+/** The box a wholesale code (DUN-14) belongs to, when the code that was asked for is a box. */
+export interface Pack {
+  code: string;
+  /** Units of the product inside the box. */
+  units: number;
+}
+
 export interface ProductDetail extends Product {
+  pack?: Pack;
   source: string;
 }
 

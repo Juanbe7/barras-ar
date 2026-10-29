@@ -13,7 +13,8 @@ interface BarcodeDetectorConstructor {
   getSupportedFormats(): Promise<string[]>;
 }
 
-const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"];
+// the retail codes, plus ITF, which is how a wholesale box (DUN-14) is printed
+const WANTED_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "itf"];
 const DETECT_INTERVAL_MS = 150;
 
 function detectorConstructor(): BarcodeDetectorConstructor | undefined {
@@ -25,15 +26,20 @@ export class NativeScanner implements BarcodeScanner {
   private stream: MediaStream | null = null;
   private timer: number | undefined;
 
-  static async isSupported(): Promise<boolean> {
+  /** The wanted formats this browser can read; a phone without ITF still reads the retail ones. */
+  private static async supportedFormats(): Promise<string[]> {
     const Detector = detectorConstructor();
-    if (!Detector) return false;
+    if (!Detector) return [];
     const supported = await Detector.getSupportedFormats();
-    return FORMATS.every((format) => supported.includes(format));
+    return WANTED_FORMATS.filter((format) => supported.includes(format));
+  }
+
+  static async isSupported(): Promise<boolean> {
+    return (await NativeScanner.supportedFormats()).includes("ean_13");
   }
 
   async start(video: HTMLVideoElement, onCode: (code: string) => void): Promise<void> {
-    const detector = new (detectorConstructor()!)({ formats: FORMATS });
+    const detector = new (detectorConstructor()!)({ formats: await NativeScanner.supportedFormats() });
     this.stream = await openCamera();
     video.srcObject = this.stream;
     await video.play();

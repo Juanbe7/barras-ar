@@ -21,11 +21,14 @@ describe("hasValidCheckDigit", () => {
     expect(hasValidCheckDigit("7790040147720")).toBe(true);
     expect(hasValidCheckDigit("4006381333931")).toBe(true);
     expect(hasValidCheckDigit("96385074")).toBe(true);
+    // a wholesale box code (DUN-14) uses the same check digit
+    expect(hasValidCheckDigit("57790060023689")).toBe(true);
   });
 
   it("rejects a misread digit", () => {
     expect(hasValidCheckDigit("7790040147721")).toBe(false);
     expect(hasValidCheckDigit("4006381333932")).toBe(false);
+    expect(hasValidCheckDigit("57790060023688")).toBe(false);
   });
 
   it("rejects anything that is not shaped like a barcode", () => {

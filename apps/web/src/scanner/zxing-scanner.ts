@@ -13,7 +13,13 @@ export class ZxingScanner implements BarcodeScanner {
     const hints = new Map([
       [
         DecodeHintType.POSSIBLE_FORMATS,
-        [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E],
+        [
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.ITF, // a wholesale box (DUN-14)
+        ],
       ],
     ]);
     const reader = new BrowserMultiFormatReader(hints);

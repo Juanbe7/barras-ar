@@ -18,3 +18,28 @@
 .product-view__source {
   font-size: 0.8rem;
 }
+
+.product-view__note {
+  font-size: 0.85rem;
+}
+
+/* the code was a box, not a unit: say so above the label, in the same ink as the facts */
+.product-view__pack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+}
+
+.product-view__pack strong {
+  font: 700 1.4rem/1.1 var(--display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.product-view__pack span {
+  color: var(--mute);
+  font-size: 0.9rem;
+}

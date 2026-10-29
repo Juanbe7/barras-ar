@@ -1,4 +1,5 @@
 import type { ProductsApi } from "../api/products-api";
+import type { Channel } from "../domain/channel";
 import { shouldSuggest } from "../domain/suggestions";
 import { debounce } from "../util/debounce";
 import { h } from "./dom";
@@ -16,11 +17,13 @@ export interface SearchBox {
 
 export interface SearchBoxOptions {
   products: ProductsApi;
+  /** Whose prices the suggestions show. */
+  channel: Channel;
   onSubmit: (text: string) => void;
 }
 
 /** The search field plus a short list of matching products that updates while the person types. */
-export function createSearchBox({ products, onSubmit }: SearchBoxOptions): SearchBox {
+export function createSearchBox({ products, channel, onSubmit }: SearchBoxOptions): SearchBox {
   const suggestions = h("div");
   // a thin bar that sweeps under the field from the first keystroke until the suggestions arrive
   const progress = h("div", { class: "search-box__progress", role: "progressbar", "aria-label": "Buscando" });
@@ -33,7 +36,9 @@ export function createSearchBox({ products, onSubmit }: SearchBoxOptions): Searc
     try {
       const page = await products.search(text.trim(), 0, SUGGESTION_COUNT);
       if (ticket !== latestTicket) return;
-      suggestions.replaceChildren(...page.data.map((product) => createProductRow(toProductRowData(product))));
+      suggestions.replaceChildren(
+        ...page.data.map((product) => createProductRow(toProductRowData(product, channel))),
+      );
     } catch {
       // suggestions are a help, not a feature to report errors about: the search button still works
       if (ticket === latestTicket) suggestions.replaceChildren();

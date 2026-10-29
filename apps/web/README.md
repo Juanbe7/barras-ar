@@ -1,18 +1,27 @@
 # @barras-ar/web
 
-Mobile web app (PWA) for BarrasAR: scan a barcode or search by name and see the typical (median), minimum and maximum reference price, drawn as a supermarket shelf label. Vanilla TypeScript with [Vite](https://vite.dev); no UI framework. The interface is in Spanish, the code and comments are in English.
+Mobile web app (PWA) for BarrasAR: scan a barcode or search by name and see the typical (median), minimum and maximum reference price, drawn as a supermarket shelf label, for supermarkets or for wholesalers. Vanilla TypeScript with [Vite](https://vite.dev); no UI framework. The interface is in Spanish, the code and comments are in English.
 
 ## What it does
 
 | Screen | Route | What happens |
 | --- | --- | --- |
 | Home | `#/` | Big "scan" button, a search box with live suggestions (names or barcodes), the last products seen. |
-| Scan | `#/scan` | Camera viewfinder, flash button when the phone has one. Opens the product once a code is read. |
+| Scan | `#/scan` | Camera viewfinder, flash button when the phone has one. Reads products and wholesale boxes, and opens the product once a code is read. |
 | Search | `#/search/<text>` | Results with their typical price, paginated ("Ver más"). |
 | Product | `#/product/<ean>` | A shelf label: typical price, a ruler from the minimum to the maximum, and the product's real EAN-13 barcode. |
 | Not found | (same route) | Says the code is not in the catalog and, when the API has them, lists related products (same manufacturer) under a heading that says they are not the scanned product. |
 
 Light and dark themes follow the system and can be switched with the button in the app bar.
+
+### Supermarket and wholesale prices
+
+A switch in the app bar, **Súper / Mayorista**, decides which prices the whole app shows: the label, every list row, the suggestions, the recent products and the related ones. The choice is kept on the phone and the current screen is drawn again in place (answers are cached for a few minutes, so it is instant).
+
+- The wholesale price is shown with its own ruler and a note that it is an approximate cost to buy and resell, not a suggested price: for some products it is above the supermarket price.
+- A product with no price in the chosen channel says so ("Sin precio mayorista", or "Solo lo venden los mayoristas") and offers a button to look at the other channel. In lists it shows a dash.
+- **Wholesale boxes:** the scanner also reads ITF-14, the code a box is printed with. The API answers a DUN-14 code with the product inside plus `pack: { code, units }`; the screen then says "Caja de N unidades", prices the label per unit and adds the price per box.
+- The API fields `wholesale_price` and `pack` are optional in the app, so it keeps working against an API that does not send them yet.
 
 ## Run it
 
@@ -31,7 +40,7 @@ npm run typecheck
 npm run build
 ```
 
-The tests cover the barcode check digit, the EAN-13 encoder (its output is decoded back with ZXing), price and date formatting, routes, the recent-products history, the theme store, the HTTP client, the debounce and timeout helpers, the flash switch, the repeated-read confirmation and the wording of the related-products list. Screens and components are plain DOM code and are checked by running the app.
+The tests cover the barcode check digit (also for box codes), the supermarket/wholesale price choice and its store, the EAN-13 encoder (its output is decoded back with ZXing), price and date formatting, routes, the recent-products history (including entries saved by an older version), the answer cache, the theme store, the HTTP client, the debounce and timeout helpers, the flash switch, the repeated-read confirmation and the wording of the related-products list. Screens and components are plain DOM code and are checked by running the app.
 
 ## How it is organized
 
@@ -41,10 +50,10 @@ src/
   config.ts          API URL from VITE_API_URL
   app/               startApp (draws the app bar once, shows the screen of the route) and the context
   router/            hash routes: parsing (pure) and navigation
-  api/               HTTP client, error kinds, products endpoints, response types
+  api/               HTTP client, in-memory answer cache, error kinds, products endpoints, response types
   domain/            pure functions: barcode check digit, EAN-13 encoder, formatting, price position,
-                     suggestions rule, related-products wording
-  storage/           recently viewed products and theme (localStorage, never throw)
+                     price channel (supermarket or wholesale), suggestions rule, related-products wording
+  storage/           recent products, theme and price channel (localStorage, never throw)
   scanner/           BarcodeScanner interface, native BarcodeDetector, ZXing fallback, camera access,
                      flash switch, repeated-read confirmation
   screens/           one folder per screen: home, scan, search, product (found and not found)
@@ -67,7 +76,7 @@ Each screen is a factory `(ctx, ...params) => { element, dispose }`; `dispose` r
 - **Design:** a shelf-label world. Ink app bar, signal yellow for the label, the main action and the brand mark, Barlow Condensed for prices and titles (bundled with `@fontsource`, so no request goes to a font server). The tokens are in `src/styles/tokens.css`.
 - **Motion:** the label drops in and the marker slides along the ruler; the scanner has a sweeping line. Everything stops under `prefers-reduced-motion`.
 - **CORS:** the API allows any origin, so the app calls it directly.
-- **Not included yet:** a service worker, so the app does not open offline.
+- **Not included yet:** a service worker, so the app does not open offline, and a `channel` filter in the search: the API does not have one, so in wholesale mode the search still returns every product and the ones without a wholesale price show a dash.
 
 ## Deploy
 

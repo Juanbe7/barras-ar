@@ -7,9 +7,11 @@ import { createSearchBox } from "../../ui/search-box";
 import type { ScreenFactory } from "../screen";
 
 export const createHomeScreen: ScreenFactory = (ctx) => {
+  const channel = ctx.channel.current();
   const recents = ctx.recents.list();
   const searchBox = createSearchBox({
     products: ctx.products,
+    channel,
     onSubmit: (text) => {
       const path = pathForQuery(text);
       if (path) ctx.navigate(path);
@@ -33,7 +35,9 @@ export const createHomeScreen: ScreenFactory = (ctx) => {
         "section",
         {},
         h("div", { class: "label" }, "Vistos hace poco"),
-        ...recents.map(({ ean, description, price }) => createProductRow({ ean, title: description, price })),
+        ...recents.map(({ ean, description, prices }) =>
+          createProductRow({ ean, title: description, price: prices[channel] }),
+        ),
       ),
   );
 

@@ -1,4 +1,5 @@
 import type { Product } from "../api/types";
+import { priceFor, type Channel } from "../domain/channel";
 import { formatChains, formatPrice } from "../domain/format";
 import { paths } from "../router/routes";
 import { h } from "./dom";
@@ -11,13 +12,20 @@ export interface ProductRowData {
   price: number | null;
 }
 
-/** The row of a product coming from the API: its name, in how many chains it is sold and its typical price. */
-export function toProductRowData(product: Product): ProductRowData {
+/** The small line under a name: where the price comes from, or why there is none in this channel. */
+function detailFor(product: Product, channel: Channel): string | undefined {
+  if (channel === "wholesale") return product.brand ?? undefined;
+  if (product.reference_price) return formatChains(product.chains);
+  return product.wholesale_price ? "Solo mayoristas" : undefined;
+}
+
+/** The row of a product coming from the API, with the typical price of the channel being looked at. */
+export function toProductRowData(product: Product, channel: Channel): ProductRowData {
   return {
     ean: product.ean,
     title: product.description,
-    detail: formatChains(product.chains),
-    price: product.reference_price?.median ?? null,
+    detail: detailFor(product, channel),
+    price: priceFor(product, channel)?.median ?? null,
   };
 }
 

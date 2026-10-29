@@ -1,7 +1,10 @@
+import type { Channel } from "../domain/channel";
+
 export interface RecentProduct {
   ean: string;
   description: string;
-  price: number | null;
+  /** The typical price in each channel, so the list can show the one the person is looking at. */
+  prices: Record<Channel, number | null>;
 }
 
 export interface RecentProducts {
@@ -14,14 +17,19 @@ type KeyValueStorage = Pick<Storage, "getItem" | "setItem">;
 const STORAGE_KEY = "barras-ar:recent";
 const MAX_RECENT = 5;
 
-function isRecentProduct(value: unknown): value is RecentProduct {
-  if (typeof value !== "object" || value === null) return false;
-  const { ean, description, price } = value as Record<string, unknown>;
-  return (
-    typeof ean === "string" &&
-    typeof description === "string" &&
-    (price === null || typeof price === "number")
-  );
+const isPrice = (value: unknown): value is number | null => value === null || typeof value === "number";
+
+/** Reads an entry as stored now, or as stored before there were two prices (a single `price`: supermarket). */
+function toRecentProduct(value: unknown): RecentProduct | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { ean, description, prices, price } = value as Record<string, unknown>;
+  if (typeof ean !== "string" || typeof description !== "string") return null;
+
+  if (typeof prices === "object" && prices !== null) {
+    const { retail, wholesale } = prices as Record<string, unknown>;
+    return isPrice(retail) && isPrice(wholesale) ? { ean, description, prices: { retail, wholesale } } : null;
+  }
+  return isPrice(price) ? { ean, description, prices: { retail: price, wholesale: null } } : null;
 }
 
 /** The last products the person looked at, kept on the phone. Storage can be blocked, so it never throws. */
@@ -29,7 +37,8 @@ export function createRecentProducts(storage: KeyValueStorage): RecentProducts {
   function list(): RecentProduct[] {
     try {
       const parsed: unknown = JSON.parse(storage.getItem(STORAGE_KEY) ?? "[]");
-      return Array.isArray(parsed) ? parsed.filter(isRecentProduct) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(toRecentProduct).filter((product) => product !== null);
     } catch {
       return [];
     }

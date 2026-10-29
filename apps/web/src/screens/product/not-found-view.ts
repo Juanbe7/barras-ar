@@ -1,4 +1,5 @@
 import type { Product } from "../../api/types";
+import { priceFor, type Channel } from "../../domain/channel";
 import { describeRelated } from "../../domain/related";
 import { paths } from "../../router/routes";
 import { createButton } from "../../ui/button";
@@ -6,7 +7,7 @@ import { h } from "../../ui/dom";
 import { createProductRow } from "../../ui/product-row";
 import "./not-found-view.css";
 
-function createRelatedList(products: Product[]): HTMLElement {
+function createRelatedList(products: Product[], channel: Channel): HTMLElement {
   const { title, note } = describeRelated(products);
   return h(
     "section",
@@ -21,7 +22,7 @@ function createRelatedList(products: Product[]): HTMLElement {
           ean: product.ean,
           title: product.description,
           detail: product.brand ?? undefined,
-          price: product.reference_price?.median ?? null,
+          price: priceFor(product, channel)?.median ?? null,
         }),
       ),
     ),
@@ -33,7 +34,7 @@ function createRelatedList(products: Product[]): HTMLElement {
  * under a heading that says it is something else, offers products with nearby codes. With none to
  * offer, the message and its buttons sit alone in the middle of the screen.
  */
-export function createNotFoundView(ean: string, related: Product[]): HTMLElement {
+export function createNotFoundView(ean: string, related: Product[], channel: Channel): HTMLElement {
   const alone = related.length === 0;
 
   return h(
@@ -61,6 +62,6 @@ export function createNotFoundView(ean: string, related: Product[]): HTMLElement
       createButton({ label: "Escanear de nuevo", href: paths.scan }),
       createButton({ label: "Buscar por nombre", href: paths.home, variant: "quiet" }),
     ),
-    !alone && createRelatedList(related),
+    !alone && createRelatedList(related, channel),
   );
 }

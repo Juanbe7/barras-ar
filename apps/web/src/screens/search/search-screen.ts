@@ -55,7 +55,9 @@ export const createSearchScreen: ScreenFactory<[query: string]> = (ctx, query) =
       const page = await ctx.products.search(query, loaded);
       if (disposed) return;
       loaded += page.data.length;
-      list.append(...page.data.map((product) => createProductRow(toProductRowData(product))));
+      list.append(
+        ...page.data.map((product) => createProductRow(toProductRowData(product, ctx.channel.current()))),
+      );
       footer.replaceChildren(...[footerFor(page)].filter((node) => node !== null));
     } catch (error) {
       if (!disposed) footer.replaceChildren(createApiErrorView(error, () => void loadPage()));

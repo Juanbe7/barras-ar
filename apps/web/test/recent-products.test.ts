@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRecentProducts } from "../src/storage/recent-products";
+import { createRecentProducts, type RecentProduct } from "../src/storage/recent-products";
 
 function fakeStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
@@ -9,7 +9,11 @@ function fakeStorage(initial: Record<string, string> = {}) {
   };
 }
 
-const product = (ean: string) => ({ ean, description: `Producto ${ean}`, price: 100 });
+const product = (ean: string): RecentProduct => ({
+  ean,
+  description: `Producto ${ean}`,
+  prices: { retail: 100, wholesale: 80 },
+});
 
 describe("recent products", () => {
   it("starts empty", () => {
@@ -30,9 +34,25 @@ describe("recent products", () => {
     expect(recents.list().map((p) => p.ean)).toEqual(["6", "5", "4", "3", "2"]);
   });
 
-  it("ignores corrupt data", () => {
+  it("keeps the price of each channel, including a missing one", () => {
+    const recents = createRecentProducts(fakeStorage());
+    recents.add({ ean: "1", description: "Solo mayorista", prices: { retail: null, wholesale: 80 } });
+    expect(recents.list()[0]?.prices).toEqual({ retail: null, wholesale: 80 });
+  });
+
+  it("reads an entry saved before there were two prices as a supermarket price", () => {
+    const old = JSON.stringify([{ ean: "7790040147720", description: "Surtido Bagley", price: 3850 }]);
+    const recents = createRecentProducts(fakeStorage({ "barras-ar:recent": old }));
+    expect(recents.list()).toEqual([
+      { ean: "7790040147720", description: "Surtido Bagley", prices: { retail: 3850, wholesale: null } },
+    ]);
+  });
+
+  it("ignores corrupt data and keeps the good entries", () => {
     expect(createRecentProducts(fakeStorage({ "barras-ar:recent": "{no es json" })).list()).toEqual([]);
     expect(createRecentProducts(fakeStorage({ "barras-ar:recent": '[{"ean":1}]' })).list()).toEqual([]);
+    const mixed = JSON.stringify([{ ean: 1 }, { ean: "2", description: "Bueno", price: null }]);
+    expect(createRecentProducts(fakeStorage({ "barras-ar:recent": mixed })).list()).toHaveLength(1);
   });
 
   it("survives a storage that refuses to write", () => {

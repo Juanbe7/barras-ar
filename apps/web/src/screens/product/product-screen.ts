@@ -26,7 +26,7 @@ export const createProductScreen: ScreenFactory<[ean: string]> = (ctx, ean) => {
   async function showNotFound(): Promise<void> {
     show(createBackButton(), createLoading("Buscando productos parecidos…"));
     const related = await withTimeout(ctx.products.getRelated(ean), RELATED_WAIT_MS, []);
-    show(createBackButton(), createNotFoundView(ean, related));
+    show(createBackButton(), createNotFoundView(ean, related, ctx.channel.current()));
   }
 
   async function load(): Promise<void> {
@@ -36,9 +36,12 @@ export const createProductScreen: ScreenFactory<[ean: string]> = (ctx, ean) => {
       ctx.recents.add({
         ean: product.ean,
         description: product.description,
-        price: product.reference_price?.median ?? null,
+        prices: {
+          retail: product.reference_price?.median ?? null,
+          wholesale: product.wholesale_price?.median ?? null,
+        },
       });
-      show(...renderProductView(product));
+      show(...renderProductView(product, ctx.channel.current(), (channel) => ctx.channel.set(channel)));
     } catch (error) {
       if (error instanceof ApiError && error.kind === "not_found") void showNotFound();
       else
