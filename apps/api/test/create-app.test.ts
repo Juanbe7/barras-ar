@@ -22,6 +22,7 @@ const bagley: ProductRecord = {
 
 class FakeProducts implements ProductRepository {
   searches: { words: string[]; limit: number; offset: number }[] = [];
+  relatedAsked: { ean: string; limit: number }[] = [];
   reachable = true;
 
   async findByEan(ean: string) {
@@ -30,6 +31,10 @@ class FakeProducts implements ProductRepository {
   async search(words: string[], limit: number, offset: number) {
     this.searches.push({ words, limit, offset });
     return { items: [bagley], hasMore: true };
+  }
+  async findRelated(ean: string, limit: number) {
+    this.relatedAsked.push({ ean, limit });
+    return [bagley];
   }
   async stats() {
     return { products: 77207, latestDataDate: "2026-10-29" };
@@ -127,6 +132,48 @@ describe("GET /products?q=", () => {
       const res = await appWith().request(`/products?q=bagley&${qs}`);
       expect(res.status).toBe(400);
     }
+  });
+});
+
+describe("GET /products/:ean/related", () => {
+  it("returns the related products with the code as the catalog stores it", async () => {
+    const res = await appWith().request("/products/7798184680905/related");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ean: "7798184680905", source: SOURCE });
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0].ean).toBe("7790040147720");
+    expect(products.relatedAsked).toEqual([{ ean: "7798184680905", limit: 8 }]);
+  });
+
+  it("answers for a code that is not in the catalog (that is its purpose)", async () => {
+    const res = await appWith().request("/products/7790000000000/related");
+    expect(res.status).toBe(200);
+  });
+
+  it("pads a short code to 13 digits", async () => {
+    await appWith().request("/products/73513537/related");
+    expect(products.relatedAsked[0]?.ean).toBe("0000073513537");
+  });
+
+  it("takes a limit and rejects out-of-range ones", async () => {
+    await appWith().request("/products/7798184680905/related?limit=3");
+    expect(products.relatedAsked[0]?.limit).toBe(3);
+    for (const bad of ["0", "21", "abc"]) {
+      const res = await appWith().request(`/products/7798184680905/related?limit=${bad}`);
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("answers 400 for something that is not a barcode", async () => {
+    const res = await appWith().request("/products/abc/related");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("invalid_ean");
+  });
+
+  it("can be cached at the edge", async () => {
+    const res = await appWith().request("/products/7798184680905/related");
+    expect(res.headers.get("Cache-Control")).toContain("s-maxage");
   });
 });
 

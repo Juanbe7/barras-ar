@@ -45,6 +45,33 @@ describe.skipIf(!process.env.DATABASE_URL)("PgProductRepository", () => {
     expect(second.items[0]?.ean).not.toBe(first.items[0]?.ean);
   });
 
+  it("finds related products for a code that is not in the catalog", async () => {
+    // a Saphirus air freshener missing from SEPA; its neighbours are Saphirus products of the same line
+    expect(await products.findByEan("7798184680905")).toBeNull();
+    const related = await products.findRelated("7798184680905", 8);
+    expect(related.length).toBeGreaterThanOrEqual(5);
+    expect(related.every((p) => p.ean.startsWith("779818468"))).toBe(true);
+    expect(related.every((p) => p.brand === "SAPHIRUS")).toBe(true);
+  });
+
+  it("ranks the closest codes first and never returns the code itself", async () => {
+    const related = await products.findRelated("7798184680912", 10);
+    expect(related.map((p) => p.ean)).not.toContain("7798184680912");
+    const distance = (ean: string) => Math.abs(Number(ean.slice(0, 12)) - Number("779818468091"));
+    // among codes sharing the same prefix length, the nearer item number comes first
+    const sharing11 = related.filter((p) => p.ean.startsWith("77981846809"));
+    expect(sharing11.map((p) => distance(p.ean))).toEqual(
+      [...sharing11.map((p) => distance(p.ean))].sort((a, b) => a - b),
+    );
+    expect(related.length).toBeLessThanOrEqual(10);
+  });
+
+  it("returns nothing for zero-padded short codes, whose prefix names no manufacturer", async () => {
+    // EAN-8 / in-store codes: 0000077988256 is a real product, yet its neighbours would be noise
+    expect(await products.findRelated("0000077988256", 8)).toEqual([]);
+    expect(await products.findRelated("0000000000000", 8)).toEqual([]);
+  });
+
   it("reports the catalog size and the latest day", async () => {
     const stats = await products.stats();
     expect(stats.products).toBeGreaterThan(70_000);

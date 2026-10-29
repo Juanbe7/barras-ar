@@ -7,6 +7,7 @@ Read-only HTTP API over the BarrasAR catalog. Built with [Hono](https://hono.dev
 | Endpoint                            | What it does                                                               |
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | `GET /products/{ean}`               | One product by barcode (8 to 14 digits). 400 if malformed, 404 if unknown. |
+| `GET /products/{ean}/related?limit=` | Products with nearby codes (same manufacturer, often same line), closest first. Works for codes that are not in the catalog, so it is what to show after a 404. `limit` 1–20 (default 8). |
 | `GET /products?q=...&limit=&offset=` | Text search: every word of `q` must appear, partial words included. `limit` 1–50 (default 20), `offset` 0–10000. |
 | `GET /stats`                        | Number of products and latest data day.                                    |
 | `GET /health`                       | `ok`, or 503 if the database is down.                                      |

@@ -33,10 +33,20 @@ export interface ProductRepository {
   findByEan(ean: string): Promise<ProductRecord | null>;
   /** Products whose search text contains every one of `words` (partial matches count). */
   search(words: string[], limit: number, offset: number): Promise<SearchPage>;
+  /**
+   * Products whose codes are close to `ean` (a 13-digit code that need not exist in the catalog):
+   * same manufacturer and, often, same product line. Never includes `ean` itself.
+   */
+  findRelated(ean: string, limit: number): Promise<ProductRecord[]>;
   stats(): Promise<CatalogStats>;
   /** Throws if the database is not reachable. */
   ping(): Promise<void>;
 }
+
+// The leading digits of a code identify its manufacturer and the next ones its product line.
+// Measured on the catalog, neighbours sharing 11 digits have the same brand 80% of the time, 63% at 10,
+// 49% at 9 and under 40% at 8 or fewer (where different companies get mixed), so 9 is the floor.
+const RELATED_MIN_PREFIX = 9;
 
 const COLUMNS = `ean, description, brand, quantity, unit, category, price_median, price_min, price_max,
                  chains, data_date, first_seen, last_seen`;
@@ -82,6 +92,24 @@ export class PgProductRepository implements ProductRepository {
       [patterns, limit + 1, offset],
     );
     return { items: rows.slice(0, limit).map(toRecord), hasMore: rows.length > limit };
+  }
+
+  async findRelated(ean: string, limit: number): Promise<ProductRecord[]> {
+    // EAN-8 and short in-store codes are zero-padded to 13 digits; their leading digits are zeros, not a
+    // manufacturer, so every one of them would "share a prefix" with unrelated products.
+    if (ean.startsWith("0000")) return [];
+    const prefix = ean.slice(0, RELATED_MIN_PREFIX);
+    // closest first: the longer the shared prefix, then the nearer the item number, then the more widespread
+    const { rows } = await this.getPool().query(
+      `SELECT ${COLUMNS} FROM products
+       WHERE ean BETWEEN $1 AND $2 AND ean <> $3
+       ORDER BY CASE WHEN left(ean, 11) = $4 THEN 2 WHEN left(ean, 10) = $5 THEN 1 ELSE 0 END DESC,
+                abs(left(ean, 12)::bigint - $6::bigint),
+                chains DESC, ean
+       LIMIT $7`,
+      [prefix + "0000", prefix + "9999", ean, ean.slice(0, 11), ean.slice(0, 10), ean.slice(0, 12), limit],
+    );
+    return rows.map(toRecord);
   }
 
   async stats(): Promise<CatalogStats> {

@@ -35,6 +35,32 @@ export const openapi = {
         },
       },
     },
+    "/products/{ean}/related": {
+      get: {
+        summary: "Products related to a barcode",
+        description:
+          "Products whose codes are close to this one: same manufacturer and, often, the same product line. " +
+          "It works for codes that are not in the catalog, so a client can show it after a 404. " +
+          "Closest first. The code itself is never included.",
+        parameters: [
+          {
+            name: "ean",
+            in: "path",
+            required: true,
+            schema: { type: "string", example: "7798184680905" },
+          },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 20, default: 8 } },
+        ],
+        responses: {
+          "200": {
+            description: "Related products (possibly none)",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/RelatedResponse" } } },
+          },
+          "400": { $ref: "#/components/responses/Error" },
+          "429": { $ref: "#/components/responses/Error" },
+        },
+      },
+    },
     "/products": {
       get: {
         summary: "Search products by text",
@@ -117,6 +143,14 @@ export const openapi = {
           { $ref: "#/components/schemas/Product" },
           { type: "object", properties: { source: { type: "string" } } },
         ],
+      },
+      RelatedResponse: {
+        type: "object",
+        properties: {
+          ean: { type: "string", description: "The code asked for, as 13 digits" },
+          data: { type: "array", items: { $ref: "#/components/schemas/Product" } },
+          source: { type: "string" },
+        },
       },
       SearchResponse: {
         type: "object",

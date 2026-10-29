@@ -16,6 +16,8 @@ export interface AppDeps {
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const MAX_OFFSET = 10_000;
+const DEFAULT_RELATED = 8;
+const MAX_RELATED = 20;
 
 // The catalog changes once a day, so responses can be cached at the edge; this also spares the database.
 const CACHE_PRODUCT = "public, s-maxage=3600, stale-while-revalidate=86400";
@@ -32,6 +34,11 @@ function intParam(value: string | undefined, min: number, max: number): number |
   if (!/^\d+$/.test(value)) return null;
   const n = Number(value);
   return n >= min && n <= max ? n : null;
+}
+
+/** The catalog's form of a barcode (13 digits, leading zeros), or null if it is not 8 to 14 digits. */
+function toCatalogEan(code: string): string | null {
+  return /^\d{8,14}$/.test(code) ? code.replace(/^0+/, "").padStart(13, "0") : null;
 }
 
 function clientKey(c: Context): string {
@@ -79,12 +86,8 @@ export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Ho
   });
 
   app.get("/products/:ean", async (c) => {
-    const code = c.req.param("ean");
-    if (!/^\d{8,14}$/.test(code)) {
-      return fail(c, 400, "invalid_ean", "The barcode must have 8 to 14 digits.");
-    }
-    // the catalog stores every code as 13 digits with leading zeros
-    const ean = code.replace(/^0+/, "").padStart(13, "0");
+    const ean = toCatalogEan(c.req.param("ean"));
+    if (!ean) return fail(c, 400, "invalid_ean", "The barcode must have 8 to 14 digits.");
     const product = await products.findByEan(ean);
     if (!product) {
       c.header("Cache-Control", CACHE_NOT_FOUND);
@@ -92,6 +95,19 @@ export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Ho
     }
     c.header("Cache-Control", CACHE_PRODUCT);
     return c.json({ ...toApiProduct(product), source: SOURCE });
+  });
+
+  // Works for codes that are not in the catalog too: it is what a client shows after a 404.
+  app.get("/products/:ean/related", async (c) => {
+    const ean = toCatalogEan(c.req.param("ean"));
+    if (!ean) return fail(c, 400, "invalid_ean", "The barcode must have 8 to 14 digits.");
+    const limit = intParam(c.req.query("limit"), 1, MAX_RELATED);
+    if (limit === null)
+      return fail(c, 400, "invalid_limit", `limit must be an integer from 1 to ${MAX_RELATED}.`);
+
+    const related = await products.findRelated(ean, limit ?? DEFAULT_RELATED);
+    c.header("Cache-Control", CACHE_PRODUCT);
+    return c.json({ ean, data: related.map(toApiProduct), source: SOURCE });
   });
 
   app.get("/products", async (c) => {
