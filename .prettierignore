@@ -1,0 +1,8 @@
+node_modules
+in
+out
+docs
+prototipo
+muestras
+*.md
+package-lock.json

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.vercel/
+
+# ZIP de SEPA y salidas de la ingesta (pesan cientos de MB)
+in/
+out/
