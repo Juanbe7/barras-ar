@@ -1,16 +1,42 @@
-.search-field__input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--space-3) 0;
-  border: 0;
-  border-bottom: 1.5px solid var(--line);
-  border-radius: 0;
-  background: none;
-  color: var(--ink);
-  font: inherit;
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
 }
 
-.search-field__input:focus {
+.search-field:focus-within {
   border-color: var(--accent);
+}
+
+.search-field__input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit; /* 16px: smaller text makes iPhone zoom in on focus */
   outline: none;
+}
+
+.search-field__button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.search-field__button svg {
+  width: 1.2rem;
+  height: 1.2rem;
 }

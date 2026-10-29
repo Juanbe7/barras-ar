@@ -29,6 +29,12 @@ body {
     max(var(--space-6), env(safe-area-inset-bottom)) max(var(--space-6), env(safe-area-inset-left));
 }
 
+/* A screen whose sections manage their own padding, such as a full-width app bar. */
+.screen--bare {
+  gap: 0;
+  padding: 0;
+}
+
 .title {
   margin: 0;
   font-size: 1.6rem;

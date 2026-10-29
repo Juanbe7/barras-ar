@@ -2,13 +2,20 @@ import { pathForQuery, paths } from "../../router/routes";
 import { createButton } from "../../ui/button";
 import { h } from "../../ui/dom";
 import { createProductRow } from "../../ui/product-row";
-import { createSearchField } from "../../ui/search-field";
+import { createSearchBox } from "../../ui/search-box";
 import { createThemeToggle } from "../../ui/theme-toggle";
 import type { ScreenFactory } from "../screen";
 import "./home-screen.css";
 
 export const createHomeScreen: ScreenFactory = (ctx) => {
   const recents = ctx.recents.list();
+  const searchBox = createSearchBox({
+    products: ctx.products,
+    onSubmit: (text) => {
+      const path = pathForQuery(text);
+      if (path) ctx.navigate(path);
+    },
+  });
 
   const element = h(
     "main",
@@ -25,12 +32,7 @@ export const createHomeScreen: ScreenFactory = (ctx) => {
       createThemeToggle(ctx.theme),
     ),
     createButton({ label: "Escanear código", href: paths.scan, large: true }),
-    createSearchField({
-      onSubmit: (text) => {
-        const path = pathForQuery(text);
-        if (path) ctx.navigate(path);
-      },
-    }),
+    searchBox.element,
     h("div", { class: "spacer" }),
     recents.length > 0 &&
       h(
@@ -41,5 +43,5 @@ export const createHomeScreen: ScreenFactory = (ctx) => {
       ),
   );
 
-  return { element };
+  return { element, dispose: searchBox.dispose };
 };

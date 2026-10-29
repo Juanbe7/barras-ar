@@ -1,4 +1,5 @@
-import { formatPrice } from "../domain/format";
+import type { Product } from "../api/types";
+import { formatChains, formatPrice } from "../domain/format";
 import { paths } from "../router/routes";
 import { h } from "./dom";
 import "./product-row.css";
@@ -8,6 +9,16 @@ export interface ProductRowData {
   title: string;
   detail?: string;
   price: number | null;
+}
+
+/** The row of a product coming from the API: its name, in how many chains it is sold and its typical price. */
+export function toProductRowData(product: Product): ProductRowData {
+  return {
+    ean: product.ean,
+    title: product.description,
+    detail: formatChains(product.chains),
+    price: product.reference_price?.median ?? null,
+  };
 }
 
 /** One line of a product list: name, a small detail and the typical price; the whole row is a link. */
