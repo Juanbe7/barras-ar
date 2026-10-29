@@ -1,0 +1,50 @@
+name: Daily ingestion
+
+# Downloads the latest SEPA day and loads it into the catalog.
+# Needs the repository secret DATABASE_URL (Supabase Session pooler, port 5432).
+on:
+  schedule:
+    # 23:00 UTC = 20:00 in Argentina, hours after SEPA publishes the day's file
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Ingest again even if this file was already ingested
+        type: boolean
+        default: false
+
+# two runs at once would fight over the same catalog
+concurrency:
+  group: daily-ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Ingest the latest SEPA day
+        working-directory: packages/ingest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # a day is ~14 million rows; give Node more room than its default heap
+          NODE_OPTIONS: --max-old-space-size=4096
+          FORCE: ${{ inputs.force }}
+        run: |
+          if [ "$FORCE" = "true" ]; then
+            npm run ingest-latest -- --force
+          else
+            npm run ingest-latest
+          fi

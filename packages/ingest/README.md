@@ -4,11 +4,12 @@ Daily ingestion of the SEPA (Precios Claros) dataset. It reads the day's ZIP, bu
 
 ## Commands
 
-Run them from this folder. `load` and `migrate` read `DATABASE_URL` from `.env` (copy `.env.example`; use the Supabase **Session pooler** string).
+Run them from this folder. `load`, `ingest-latest` and `migrate` read `DATABASE_URL` from `.env` (copy `.env.example`; use the Supabase **Session pooler** string).
 
 ```bash
 npm run migrate                                          # apply db/migrations/*.sql
-npm run load -- ../../in/sepa_jueves.zip                 # ingest a day (date comes from the ZIP)
+npm run ingest-latest                                    # download the newest day from the SEPA portal and ingest it
+npm run load -- ../../in/sepa_jueves.zip                 # ingest a day you already have (date comes from the ZIP)
 npm run load -- ../../in/sepa_jueves.zip --force         # ingest it again even if the file was seen
 npm run export-csv -- ../../in/sepa_jueves.zip ../../out/products.csv   # same records, as CSV, no database
 ```
@@ -47,6 +48,15 @@ Variants are not stored: they are rebuilt from the source on every ingestion.
 - The whole load runs in one transaction: `COPY` into a staging table, then `INSERT ... ON CONFLICT`.
 - A product's fields are only overwritten by data from the same day or a newer one, so loading an older day never turns the catalog back. `first_seen` and `last_seen` always widen.
 - Empty or corrupt chain ZIPs are reported and skipped; the rest of the day is still processed.
+
+## Daily automation
+
+`.github/workflows/daily-ingest.yml` runs `ingest-latest` every day at 23:00 UTC (20:00 in Argentina) and can also be started by hand from the Actions tab, with an option to force a repeat.
+
+- It needs the repository secret `DATABASE_URL` (Supabase **Session pooler**, port 5432).
+- `ingest-latest` asks the portal's CKAN API for the daily ZIP published most recently, so it needs no weekday logic. If today's file is not out yet it finds yesterday's, which is recognized by its hash and skipped.
+- It fails, and GitHub emails the repository owner, if the newest file is more than 3 days old (the source stopped publishing), if the download comes out incomplete, or if the load fails. The load is a single transaction, so a failure leaves the catalog as it was.
+- GitHub disables scheduled workflows of a public repository after 60 days without repository activity. A commit now and then keeps it alive; otherwise re-enable it in the Actions tab.
 
 ## Tests
 

@@ -8,7 +8,8 @@
     "typecheck": "tsc -p .",
     "export-csv": "tsx src/commands/export-csv.ts",
     "migrate": "tsx --env-file=.env src/commands/migrate.ts",
-    "load": "tsx --env-file=.env src/commands/load.ts"
+    "load": "tsx --env-file=.env src/commands/load.ts",
+    "ingest-latest": "tsx --env-file=.env src/commands/ingest-latest.ts"
   },
   "dependencies": {
     "csv-parse": "^7.0.3",
