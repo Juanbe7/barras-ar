@@ -38,9 +38,10 @@ export interface BatchItemResult {
 }
 
 /** An item that passed the checks of the whole request but is itself invalid. */
-type ParsedItem = { ok: true; item: BatchItem } | { ok: false; id: string; error: BatchItemError };
+type ParsedItem = { kind: "ok"; item: BatchItem } | { kind: "error"; id: string; error: BatchItemError };
 
-export type ParsedBatch = { ok: true; items: ParsedItem[] } | { ok: false; code: string; message: string };
+export type ParsedBatch =
+  { kind: "ok"; items: ParsedItem[] } | { kind: "error"; code: string; message: string };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -52,17 +53,17 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export function parseBatchBody(body: unknown): ParsedBatch {
   if (!isRecord(body) || !Array.isArray(body.items)) {
     return {
-      ok: false,
+      kind: "error",
       code: "invalid_body",
       message: 'The body must be a JSON object with an "items" array.',
     };
   }
   if (body.items.length === 0) {
-    return { ok: false, code: "invalid_items", message: "items must not be empty." };
+    return { kind: "error", code: "invalid_items", message: "items must not be empty." };
   }
   if (body.items.length > MAX_BATCH_ITEMS) {
     return {
-      ok: false,
+      kind: "error",
       code: "batch_too_large",
       message: `A batch can have at most ${MAX_BATCH_ITEMS} items.`,
     };
@@ -75,23 +76,31 @@ export function parseBatchBody(body: unknown): ParsedBatch {
     const id = isRecord(raw) ? raw.id : undefined;
     if (typeof id !== "string" || id.length === 0 || id.length > MAX_ID_LENGTH) {
       return {
-        ok: false,
+        kind: "error",
         code: "invalid_id",
         message: `Every item needs a string id of 1 to ${MAX_ID_LENGTH} characters.`,
       };
     }
     if (seen.has(id)) {
-      return { ok: false, code: "duplicate_id", message: `The id "${id}" is used by more than one item.` };
+      return {
+        kind: "error",
+        code: "duplicate_id",
+        message: `The id "${id}" is used by more than one item.`,
+      };
     }
     seen.add(id);
     items.push(parseItem(id, raw as Record<string, unknown>));
   }
 
-  return { ok: true, items };
+  return { kind: "ok", items };
 }
 
 function parseItem(id: string, raw: Record<string, unknown>): ParsedItem {
-  const bad = (code: string, message: string): ParsedItem => ({ ok: false, id, error: { code, message } });
+  const bad = (code: string, message: string): ParsedItem => ({
+    kind: "error",
+    id,
+    error: { code, message },
+  });
 
   const hasQ = raw.q !== undefined;
   const hasEan = raw.ean !== undefined;
@@ -114,7 +123,7 @@ function parseItem(id: string, raw: Record<string, unknown>): ParsedItem {
     if (typeof raw.ean !== "string" || !/^\d{8,14}$/.test(raw.ean)) {
       return bad("invalid_ean", "The barcode must have 8 to 14 digits.");
     }
-    return { ok: true, item: { id, ean: raw.ean, limit } };
+    return { kind: "ok", item: { id, ean: raw.ean, limit } };
   }
 
   if (typeof raw.q !== "string" || raw.q.length > MAX_QUERY_LENGTH || parseSearchQuery(raw.q).length === 0) {
@@ -123,7 +132,7 @@ function parseItem(id: string, raw: Record<string, unknown>): ParsedItem {
       `q must contain letters or digits and be at most ${MAX_QUERY_LENGTH} characters.`,
     );
   }
-  return { ok: true, item: { id, q: raw.q, limit } };
+  return { kind: "ok", item: { id, q: raw.q, limit } };
 }
 
 async function runItem(products: ProductRepository, item: BatchItem): Promise<BatchItemResult> {
@@ -164,9 +173,10 @@ export async function runBatch(
     while (next < parsed.length) {
       const index = next++;
       const entry = parsed[index]!;
-      results[index] = entry.ok
-        ? await runItem(products, entry.item)
-        : { id: entry.id, found: false, data: [], error: entry.error };
+      results[index] =
+        entry.kind === "ok"
+          ? await runItem(products, entry.item)
+          : { id: entry.id, found: false, data: [], error: entry.error };
     }
   }
 
