@@ -1,8 +1,11 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { openapi } from "./openapi.js";
+import { parseBatchBody, runBatch } from "./products/batch.js";
+import { lookupEan, toCatalogEan } from "./products/lookup.js";
 import { SOURCE, toApiProduct } from "./products/presenter.js";
 import type { ProductRepository } from "./products/repository.js";
 import { parseSearchQuery } from "./products/search-query.js";
@@ -18,6 +21,8 @@ const MAX_LIMIT = 50;
 const MAX_OFFSET = 10_000;
 const DEFAULT_RELATED = 8;
 const MAX_RELATED = 20;
+// 100 items of at most ~300 bytes each fit well under this; anything bigger is not a real batch.
+const MAX_BATCH_BODY_BYTES = 100 * 1024;
 
 // The catalog changes once a day, so responses can be cached at the edge; this also spares the database.
 const CACHE_PRODUCT = "public, s-maxage=3600, stale-while-revalidate=86400";
@@ -36,11 +41,6 @@ function intParam(value: string | undefined, min: number, max: number): number |
   return n >= min && n <= max ? n : null;
 }
 
-/** The catalog's form of a barcode (13 digits, leading zeros), or null if it is not 8 to 14 digits. */
-function toCatalogEan(code: string): string | null {
-  return /^\d{8,14}$/.test(code) ? code.replace(/^0+/, "").padStart(13, "0") : null;
-}
-
 function clientKey(c: Context): string {
   const forwarded = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || c.req.header("x-real-ip") || "unknown";
@@ -48,7 +48,7 @@ function clientKey(c: Context): string {
 
 /** Registers the API on `app` (a new Hono instance unless one is given) and returns it. */
 export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Hono()): Hono {
-  app.use(cors({ origin: "*", allowMethods: ["GET"] }));
+  app.use(cors({ origin: "*", allowMethods: ["GET", "POST", "OPTIONS"] }));
 
   app.use(async (c, next) => {
     const result = rateLimiter.hit(clientKey(c));
@@ -86,24 +86,46 @@ export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Ho
   });
 
   app.get("/products/:ean", async (c) => {
-    const code = c.req.param("ean");
-    const ean = toCatalogEan(code);
-    if (!ean) return fail(c, 400, "invalid_ean", "The barcode must have 8 to 14 digits.");
-
-    // 13 digits is a unit's own barcode; a 14-digit code may instead be the box it is sold in (DUN-14)
-    const product = ean.length === 13 ? await products.findByEan(ean) : null;
-    if (product) {
-      c.header("Cache-Control", CACHE_PRODUCT);
-      return c.json({ ...toApiProduct(product), source: SOURCE });
+    const lookup = await lookupEan(products, c.req.param("ean"));
+    if (lookup.kind === "invalid")
+      return fail(c, 400, "invalid_ean", "The barcode must have 8 to 14 digits.");
+    if (lookup.kind === "not_found") {
+      c.header("Cache-Control", CACHE_NOT_FOUND);
+      return fail(c, 404, "not_found", "No product with that barcode.");
     }
-    const box = code.length === 14 ? await products.findByBoxCode(code) : null;
-    if (box) {
-      c.header("Cache-Control", CACHE_PRODUCT);
-      return c.json({ ...toApiProduct(box.product), pack: { code, units: box.units }, source: SOURCE });
-    }
-    c.header("Cache-Control", CACHE_NOT_FOUND);
-    return fail(c, 404, "not_found", "No product with that barcode.");
+    c.header("Cache-Control", CACHE_PRODUCT);
+    return c.json({
+      ...toApiProduct(lookup.record),
+      ...(lookup.pack ? { pack: lookup.pack } : {}),
+      source: SOURCE,
+    });
   });
+
+  // Many lookups in one request. It counts as ONE hit of the rate limit (the middleware above runs
+  // once per request), which is the point: a client importing hundreds of products would otherwise
+  // need one request each. POST responses are not cached at the edge; clients cache on their side.
+  app.post(
+    "/products/batch",
+    bodyLimit({
+      maxSize: MAX_BATCH_BODY_BYTES,
+      onError: (c) => fail(c, 413, "payload_too_large", "The request body is too large for a batch."),
+    }),
+    async (c) => {
+      let body: unknown;
+      try {
+        body = await c.req.json();
+      } catch {
+        return fail(c, 400, "invalid_json", "The body must be valid JSON.");
+      }
+
+      const parsed = parseBatchBody(body);
+      if (!parsed.ok) return fail(c, 400, parsed.code, parsed.message);
+
+      const results = await runBatch(products, parsed.items);
+      c.header("Cache-Control", "no-store");
+      return c.json({ results, source: SOURCE });
+    },
+  );
 
   // Works for codes that are not in the catalog too: it is what a client shows after a 404.
   app.get("/products/:ean/related", async (c) => {
