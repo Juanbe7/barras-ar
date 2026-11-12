@@ -91,6 +91,29 @@ export const openapi = {
         },
       },
     },
+    "/products/batch": {
+      post: {
+        summary: "Many lookups in one request",
+        description:
+          "Looks up to 100 items, each by text (`q`) or by barcode (`ean`), and answers one result per item, in the " +
+          "same order. The whole batch counts as ONE request for the rate limit, so it is the way to look up hundreds " +
+          "of products (a bulk import). A bad or unmatched item never fails the batch: it comes back with " +
+          "`found: false` (and an `error` when the item was invalid). Not cached at the edge.",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/BatchRequest" } } },
+        },
+        responses: {
+          "200": {
+            description: "One result per item, in the request's order",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/BatchResponse" } } },
+          },
+          "400": { $ref: "#/components/responses/Error" },
+          "413": { $ref: "#/components/responses/Error" },
+          "429": { $ref: "#/components/responses/Error" },
+        },
+      },
+    },
     "/stats": {
       get: { summary: "Catalog size and latest data day", responses: { "200": { description: "Stats" } } },
     },
@@ -175,6 +198,75 @@ export const openapi = {
         properties: {
           ean: { type: "string", description: "The code asked for, as 13 digits" },
           data: { type: "array", items: { $ref: "#/components/schemas/Product" } },
+          source: { type: "string" },
+        },
+      },
+      BatchRequest: {
+        type: "object",
+        required: ["items"],
+        properties: {
+          items: {
+            type: "array",
+            minItems: 1,
+            maxItems: 100,
+            items: {
+              type: "object",
+              required: ["id"],
+              description: "Exactly one of `q` or `ean`.",
+              properties: {
+                id: {
+                  type: "string",
+                  minLength: 1,
+                  maxLength: 64,
+                  description:
+                    "Yours (for example the spreadsheet row). Unique within the batch; it comes back in the result.",
+                  example: "row-2",
+                },
+                q: {
+                  type: "string",
+                  maxLength: 200,
+                  description: "Text search, like GET /products?q=",
+                  example: "alfajor milka",
+                },
+                ean: {
+                  type: "string",
+                  description: "Barcode, 8 to 14 digits, like GET /products/{ean}",
+                  example: "7790040147720",
+                },
+                limit: {
+                  type: "integer",
+                  minimum: 1,
+                  maximum: 20,
+                  default: 5,
+                  description: "Maximum products for a text item",
+                },
+              },
+            },
+          },
+        },
+      },
+      BatchItemResult: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          found: { type: "boolean" },
+          data: {
+            type: "array",
+            description: "The products found (one for an `ean` item; plus `pack` when the code is a box)",
+            items: { $ref: "#/components/schemas/Product" },
+          },
+          error: {
+            type: "object",
+            description:
+              "Only when this item was invalid (invalid_item, invalid_ean, invalid_query, invalid_limit) or failed (internal_error)",
+            properties: { code: { type: "string" }, message: { type: "string" } },
+          },
+        },
+      },
+      BatchResponse: {
+        type: "object",
+        properties: {
+          results: { type: "array", items: { $ref: "#/components/schemas/BatchItemResult" } },
           source: { type: "string" },
         },
       },

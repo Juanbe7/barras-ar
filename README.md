@@ -14,12 +14,13 @@ API abierta y gratuita de productos argentinos por código de barras (EAN). A pa
 
 ## Usar la API
 
-URL pública: **`https://barras-ar.vercel.app`**. Es solo de lectura, no necesita clave y acepta pedidos desde cualquier origen (CORS abierto).
+URL pública: **`https://barras-ar.vercel.app`**. Es solo de lectura (el endpoint por lote usa POST, pero también solo consulta), no necesita clave y acepta pedidos desde cualquier origen (CORS abierto).
 
 | Endpoint | Para qué |
 | --- | --- |
 | `GET /products/{ean}` | Ficha de un producto por código (8 a 14 dígitos). 404 si no está, 400 si el código no es válido |
 | `GET /products?q=alfajor milka&limit=5` | Búsqueda por texto. Cada palabra de `q` tiene que aparecer, completa o parcial (`alfaj mil` sirve). `limit` de 1 a 50 (por defecto 20), `offset` de 0 a 10000. La respuesta trae `has_more` para paginar |
+| `POST /products/batch` | Hasta 100 consultas en un solo pedido (cada una por texto `q` o por código `ean`, con tu propio `id`). Devuelve un resultado por ítem y en el mismo orden; un ítem sin resultado o inválido no tumba el resto. **Todo el lote cuenta como un solo pedido** para el límite. Pensado para cargas masivas: ver [la guía](apps/api/README.md#batch-lookups) |
 | `GET /products/{ean}/related?limit=8` | Productos con códigos cercanos (mismo fabricante, a veces la misma línea). Sirve incluso para un código que no está en el catálogo |
 | `GET /stats` | Cantidad de productos y día de los datos |
 | `GET /health` | Estado del servicio |
