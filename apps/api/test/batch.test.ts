@@ -51,7 +51,7 @@ class FakeProducts implements ProductRepository {
     if (words.includes("milka")) return { items: [milka, bagley], hasMore: false };
     return { items: [], hasMore: false };
   }
-  async findRelated() {
+  async findRelated(): Promise<ProductRecord[]> {
     return [];
   }
   async stats() {

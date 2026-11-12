@@ -119,7 +119,7 @@ export function createApp({ products, rateLimiter }: AppDeps, app: Hono = new Ho
       }
 
       const parsed = parseBatchBody(body);
-      if (!parsed.ok) return fail(c, 400, parsed.code, parsed.message);
+      if (parsed.kind === "error") return fail(c, 400, parsed.code, parsed.message);
 
       const results = await runBatch(products, parsed.items);
       c.header("Cache-Control", "no-store");
